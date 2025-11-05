@@ -27,7 +27,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateToHome, onNav
 
   return (
     <header className="bg-white/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-200">
-      <div className="max-w-7xl mx-auto p-4 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
         {/* Left side: Logo + Desktop Nav */}
         <div className="flex items-center gap-8">
           <button onClick={onNavigateToHome} className="flex items-center gap-2 flex-shrink-0">

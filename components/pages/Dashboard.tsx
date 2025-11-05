@@ -63,60 +63,76 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
   return (
     <form 
       onSubmit={handleSubmit}
-      className="bg-white shadow-soft rounded-xl p-3 max-w-2xl w-full mx-auto mt-10"
+      className="max-w-3xl w-full mx-auto mt-10"
     >
-      <input
-        type="text"
-        value={image ? `File: ${image.name}` : url}
-        onChange={handleUrlChange}
-        readOnly={!!image}
-        placeholder="Enter a website URL (e.g., https://example.com)"
-        className="w-full text-base bg-transparent p-3 focus:outline-none placeholder-text-secondary"
-      />
-      
-      {error && <div className="text-red-600 text-sm px-3 pb-2">{error}</div>}
-
-      <div className="flex flex-col sm:flex-row justify-between items-center mt-2 p-1 gap-4 sm:gap-2">
-        <div className="flex items-center gap-2">
-          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+      <div className="relative bg-white border border-gray-200 rounded-xl p-3 shadow-soft flex items-center gap-2 focus-within:ring-2 focus-within:ring-primary focus-within:ring-opacity-50 transition-shadow">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+            className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
             aria-label="Upload image"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
           </button>
-        </div>
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setReviewType(ReviewType.UI)}
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${reviewType === ReviewType.UI ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:bg-gray-100'}`}
-          >
-            UI Analyze
-          </button>
-          <button
-            type="button"
-            onClick={() => setReviewType(ReviewType.UX)}
-            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${reviewType === ReviewType.UX ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:bg-gray-100'}`}
-          >
-            UX Analyze
-          </button>
+          <input
+            type="text"
+            value={image ? `File: ${image.name}` : url}
+            onChange={handleUrlChange}
+            readOnly={!!image}
+            placeholder="Enter a website URL (e.g., https://example.com)"
+            className="flex-grow text-sm sm:text-base bg-transparent p-2 focus:outline-none placeholder-text-secondary"
+          />
+
+          <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setReviewType(ReviewType.UI)}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${reviewType === ReviewType.UI ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              UI Analyze
+            </button>
+            <button
+              type="button"
+              onClick={() => setReviewType(ReviewType.UX)}
+              className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${reviewType === ReviewType.UX ? 'bg-primary/10 text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              UX Analyze
+            </button>
+          </div>
+          
           <button
             type="submit"
             disabled={!image && !url}
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary-light disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
             aria-label="Start analysis"
           >
              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 11l3-3m0 0l3 3m-3-3v8" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
             </svg>
           </button>
-        </div>
+      </div>
+      
+      {error && <div className="text-red-600 text-sm px-3 pt-2 text-center">{error}</div>}
+      
+      <div className="sm:hidden flex items-center justify-center gap-2 mt-4">
+        <button
+          type="button"
+          onClick={() => setReviewType(ReviewType.UI)}
+          className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${reviewType === ReviewType.UI ? 'bg-primary/10 text-primary' : 'bg-white border'}`}
+        >
+          UI Analyze
+        </button>
+        <button
+          type="button"
+          onClick={() => setReviewType(ReviewType.UX)}
+          className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${reviewType === ReviewType.UX ? 'bg-primary/10 text-primary' : 'bg-white border'}`}
+        >
+          UX Analyze
+        </button>
       </div>
     </form>
   )
@@ -157,12 +173,12 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, 
   return (
     <>
       {/* Hero Section */}
-      <div className="text-center py-16 sm:py-24 px-4 sm:px-6 lg:px-8">
+      <div className="text-center py-12 sm:py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-3xl mx-auto">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-text-primary">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-text-primary">
             Get Instant UI & UX Feedback
           </h1>
-          <p className="mt-6 text-lg text-text-secondary">
+          <p className="mt-6 text-md sm:text-lg text-gray-600 max-w-2xl mx-auto">
             Upload a screenshot or paste a URL to have your design analyzed by our expert AI in seconds. Stop guessing, start improving.
           </p>
           <AnalysisForm onSubmit={onSubmit} error={error} />

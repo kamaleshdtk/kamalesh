@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AnalysisReport, ReviewType } from './types';
 import Header from './components/Header';
 import Dashboard from './components/pages/Dashboard';
@@ -13,10 +13,26 @@ type Page = 'auth' | 'home' | 'new_review' | 'loading' | 'report';
 
 const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('auth');
-  const [reports, setReports] = useState<AnalysisReport[]>([]);
+  const [reports, setReports] = useState<AnalysisReport[]>(() => {
+    try {
+      const savedReports = localStorage.getItem('uxray-reports');
+      return savedReports ? JSON.parse(savedReports) : [];
+    } catch (error) {
+      console.error('Failed to parse reports from localStorage', error);
+      return [];
+    }
+  });
   const [activeReport, setActiveReport] = useState<AnalysisReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('uxray-reports', JSON.stringify(reports));
+    } catch (error) {
+      console.error('Failed to save reports to localStorage', error);
+    }
+  }, [reports]);
 
   const handleLogin = () => {
     setUser({
@@ -116,7 +132,7 @@ const App: React.FC = () => {
           currentPage={currentPage}
         />
       )}
-      <main>
+      <main className="pt-12">
         {renderPage()}
       </main>
     </div>
