@@ -1,0 +1,48 @@
+
+import React from 'react';
+
+interface AuthPageProps {
+  onLogin: () => void;
+}
+
+const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
+  return (
+    <div className="flex items-center justify-center min-h-[80vh]">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white shadow-soft rounded-xl">
+        <div className="text-center">
+            <div className="flex justify-center items-center gap-2 mb-4">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-primary">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M2 7L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 22V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M22 7L12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 4.5L7 9.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <h1 className="text-3xl font-bold text-text-primary">UXRay AI</h1>
+            </div>
+          <h2 className="text-xl font-bold text-text-primary">Welcome Back</h2>
+          <p className="mt-2 text-text-secondary">Sign in to review your designs.</p>
+        </div>
+        <div className="space-y-4">
+            <button
+              onClick={onLogin}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-primary text-white font-semibold rounded-lg hover:bg-primary-light transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              Sign In (Demo)
+            </button>
+            <button
+              onClick={onLogin}
+              className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white text-text-primary border border-gray-200 font-semibold rounded-lg hover:bg-gray-100 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
+            >
+            <svg className="w-5 h-5" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M44.5 24.3H42.7V24H24V27.3H35.3C33.9 32.2 29.2 36 24 36C17.4 36 12 30.6 12 24C12 17.4 17.4 12 24 12C27.1 12 29.8 13.1 32 14.9L34.5 12.4C31.5 9.7 28 8 24 8C15.2 8 8 15.2 8 24C8 32.8 15.2 40 24 40C32.8 40 40 32.8 40 24C40 22.1 39.8 20.4 39.4 18.8C38.6 15.8 36.9 13.2 34.5 11.1L32.1 13.5C33.5 14.8 34.6 16.4 35.3 18.3H24V21.6H44.5C44.5 22.5 44.5 23.4 44.5 24.3Z" fill="#4285F4"/>
+            </svg>
+            Sign In with Google
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AuthPage;
