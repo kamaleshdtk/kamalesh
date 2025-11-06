@@ -1,6 +1,7 @@
 
-import React, { useState, useRef, useCallback, ChangeEvent } from 'react';
+import React, { useState, useRef, useCallback, ChangeEvent, KeyboardEvent } from 'react';
 import { ReviewType } from '../../types';
+import { fileToDataUrl, urlToDataUrl } from '../../utils';
 
 interface NewReviewProps {
   onSubmit: (
@@ -12,30 +13,24 @@ interface NewReviewProps {
   error: string | null;
 }
 
-const fileToDataUrl = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
-
 const NewReview: React.FC<NewReviewProps> = ({ onSubmit, error }) => {
   const [reviewType, setReviewType] = useState<ReviewType>(ReviewType.UI);
   const [image, setImage] = useState<{ data: string; mimeType: string; name: string } | null>(null);
   const [url, setUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if(file.size > 4 * 1024 * 1024) { // 4MB limit
-        alert("File size exceeds 4MB. Please upload a smaller image.");
+        setFormError("File size exceeds 4MB. Please upload a smaller image.");
         return;
       }
-      const dataUrl = await fileToDataUrl(file);
-      setImage({ data: dataUrl, mimeType: file.type, name: file.name });
+      setFormError(null);
+      const imageData = await fileToDataUrl(file);
+      setImage(imageData);
       setUrl('');
     }
   }, []);
@@ -43,25 +38,40 @@ const NewReview: React.FC<NewReviewProps> = ({ onSubmit, error }) => {
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
     setImage(null);
+    setFormError(null);
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (image) {
-      onSubmit(image, reviewType, image.name, 'Image');
-    } else if (url) {
-      // In a real app, you'd fetch the URL on a backend, screenshot it, and use that image.
-      // For this demo, we'll use a placeholder image and pass the URL value.
-      const placeholderImage = { data: `https://picsum.photos/seed/${encodeURIComponent(url)}/1280/800`, mimeType: 'image/jpeg' };
-      // This is a simplified flow. A real implementation would convert the picsum URL to base64 first.
-      // For simplicity here, we alert the user about the simulation.
-      alert(`URL analysis is simulated. A screenshot of a placeholder image will be used for "${url}".`);
-       const fakeScreenshot = { data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', mimeType: 'image/png' };
-      onSubmit(fakeScreenshot, reviewType, url, 'URL');
-    } else {
-      alert('Please upload an image or enter a URL.');
+    if (!image && !url) {
+      setFormError('Please upload an image or enter a URL.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setFormError(null);
+    
+    try {
+      if (image) {
+        onSubmit(image, reviewType, image.name, 'Image');
+      } else if (url) {
+        const screenshot = await urlToDataUrl(url);
+        onSubmit(screenshot, reviewType, url, 'URL');
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'An unknown error occurred.');
+      setIsSubmitting(false);
     }
   };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
+
+  const analysisInProgress = isSubmitting || !!error;
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -69,19 +79,22 @@ const NewReview: React.FC<NewReviewProps> = ({ onSubmit, error }) => {
         <h2 className="text-2xl font-bold text-center text-text-primary mb-1">Start a New Review</h2>
         <p className="text-center text-text-secondary mb-8">Upload a screenshot or paste a URL to get started.</p>
 
-        {error && <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-6 text-sm">{error}</div>}
+        {(formError || error) && <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-6 text-sm">{formError || error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label className="block text-sm font-medium text-text-primary mb-2">1. Provide a design</label>
             <div className="flex flex-col sm:flex-row gap-4">
               <div
-                className={`flex-1 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                role="button"
+                tabIndex={0}
+                className={`flex-1 border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary ${
                   image ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary'
                 }`}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={handleKeyDown}
               >
-                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
+                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" disabled={analysisInProgress} />
                 <svg className="mx-auto h-10 w-10 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
                 <p className="mt-1 text-sm text-text-secondary">{image ? image.name : 'Upload Screenshot'}</p>
               </div>
@@ -91,7 +104,8 @@ const NewReview: React.FC<NewReviewProps> = ({ onSubmit, error }) => {
                 value={url}
                 onChange={handleUrlChange}
                 placeholder="Paste website URL"
-                className={`flex-1 block w-full bg-white border-2 rounded-lg p-4 transition-colors focus:ring-primary focus:border-primary placeholder-text-secondary ${
+                disabled={analysisInProgress}
+                className={`flex-1 block w-full bg-white border-2 rounded-lg p-4 transition-colors focus:ring-primary focus:border-primary placeholder-text-secondary disabled:opacity-50 ${
                   url ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary'
                 }`}
               />
@@ -106,7 +120,8 @@ const NewReview: React.FC<NewReviewProps> = ({ onSubmit, error }) => {
                   key={type}
                   type="button"
                   onClick={() => setReviewType(type)}
-                  className={`py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                  disabled={analysisInProgress}
+                  className={`py-3 px-4 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 ${
                     reviewType === type ? 'bg-primary text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200 text-text-secondary'
                   }`}
                 >
@@ -118,10 +133,11 @@ const NewReview: React.FC<NewReviewProps> = ({ onSubmit, error }) => {
           
           <button
             type="submit"
-            disabled={!image && !url}
-            className="w-full bg-primary text-white font-semibold py-3 px-5 rounded-lg hover:bg-primary-light transition-all duration-300 shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={!image && !url || analysisInProgress}
+            className="w-full bg-primary text-white font-semibold py-3 px-5 rounded-lg hover:bg-primary-light transition-all duration-300 shadow-sm disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-3"
           >
-            Start Analysis
+            {isSubmitting && <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>}
+            {isSubmitting ? 'Analyzing...' : 'Start Analysis'}
           </button>
         </form>
       </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 
 const loadingMessages = [
@@ -28,8 +27,8 @@ const LoadingScreen: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center">
       <Spinner />
-      <h2 className="text-2xl font-bold text-text-primary mt-6">Analyzing your design...</h2>
-      <p className="text-text-secondary mt-2 max-w-sm">
+      <h2 className="text-2xl font-bold text-gray-900 mt-6">Analyzing your design...</h2>
+      <p className="text-gray-600 mt-2 max-w-sm">
         Our AI is hard at work. This usually takes less than a minute.
       </p>
       <div className="mt-8 h-6">

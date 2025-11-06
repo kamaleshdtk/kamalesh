@@ -1,5 +1,5 @@
 {
   "name": "UXRay AI",
-  "description": "An intelligent AI assistant that instantly reviews UI & UX from a URL or screenshot, providing detailed reports with scores and actionable improvement suggestions.",
+  "description": "An AI assistant that reviews UI & UX instantly from a screenshot or URL.",
   "requestFramePermissions": []
 }

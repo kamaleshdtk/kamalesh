@@ -1,16 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, ReviewType } from '../types';
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  // This is a fallback for development environments where the key might not be set.
-  // In a real production environment, the key should be securely managed.
-  console.warn("API_KEY is not set. Using a placeholder. The application might not function as expected.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY || "YOUR_API_KEY_HERE" });
-
 const responseSchema = {
   type: Type.OBJECT,
   properties: {
@@ -96,6 +86,17 @@ export const analyzeDesign = async (
   image: { data: string; mimeType: string },
   reviewType: ReviewType
 ): Promise<AnalysisResult> => {
+  // Safely access the API key and initialize the client inside the function
+  // to prevent an app-level crash if `process` is not defined on load.
+  const API_KEY = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+
+  if (!API_KEY) {
+    console.error("Gemini API key is not configured in the environment.");
+    throw new Error("The AI service is not configured. Please contact support.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey: API_KEY });
+  
   const prompt = getReviewPrompt(reviewType);
 
   const imagePart = {

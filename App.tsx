@@ -1,59 +1,60 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AnalysisReport, ReviewType } from './types';
+import { analyzeDesign } from './services/geminiService';
 import Header from './components/Header';
+import AuthPage from './components/pages/AuthPage';
 import Dashboard from './components/pages/Dashboard';
 import NewReview from './components/pages/NewReview';
 import LoadingScreen from './components/pages/LoadingScreen';
 import ReportPage from './components/pages/ReportPage';
-import AuthPage from './components/pages/AuthPage';
-import { analyzeDesign } from './services/geminiService';
 
-type Page = 'auth' | 'home' | 'new_review' | 'loading' | 'report';
+// Mock user data
+const user = {
+  name: 'Demo User',
+  avatar: `https://i.pravatar.cc/150?u=demo-user`,
+};
 
 const App: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState<Page>('auth');
-  const [reports, setReports] = useState<AnalysisReport[]>(() => {
-    try {
-      const savedReports = localStorage.getItem('uxray-reports');
-      return savedReports ? JSON.parse(savedReports) : [];
-    } catch (error) {
-      console.error('Failed to parse reports from localStorage', error);
-      return [];
-    }
-  });
-  const [activeReport, setActiveReport] = useState<AnalysisReport | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'new-review' | 'loading' | 'report'>('auth');
+  const [reports, setReports] = useState<AnalysisReport[]>([]);
+  const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
+
+  useEffect(() => {
+    try {
+      const storedReports = localStorage.getItem('uxray-reports');
+      if (storedReports) {
+        setReports(JSON.parse(storedReports));
+      }
+    } catch (e) {
+      console.error("Failed to parse reports from localStorage", e);
+      setReports([]);
+    }
+  }, []);
 
   useEffect(() => {
     try {
       localStorage.setItem('uxray-reports', JSON.stringify(reports));
-    } catch (error) {
-      console.error('Failed to save reports to localStorage', error);
+    } catch (e) {
+      console.error("Failed to save reports to localStorage", e);
     }
   }, [reports]);
-
+  
   const handleLogin = () => {
-    setUser({
-      name: 'Alex Doe',
-      email: 'alex.doe@example.com',
-      avatar: `https://i.pravatar.cc/150?u=alexdoe`,
-    });
+    setIsLoggedIn(true);
     setCurrentPage('home');
   };
-
+  
   const handleLogout = () => {
-    setUser(null);
+    setIsLoggedIn(false);
     setCurrentPage('auth');
   };
 
-  const startNewReview = () => {
-    setCurrentPage('new_review');
-    setError(null);
-  };
+  const navigateToHome = () => setCurrentPage('home');
 
-  const handleAnalysisSubmit = useCallback(async (
+  const handleSubmit = useCallback(async (
     image: { data: string; mimeType: string },
     reviewType: ReviewType,
     inputValue: string,
@@ -65,9 +66,9 @@ const App: React.FC = () => {
       const result = await analyzeDesign(image, reviewType);
       const newReport: AnalysisReport = {
         id: new Date().toISOString(),
-        user_id: user?.email || 'guest',
+        user_id: 'demo-user',
         input_type: inputType,
-        input_value: inputType === 'Image' ? 'Uploaded Screenshot' : inputValue,
+        input_value: inputValue,
         ui_score: result.uiScore,
         ux_score: result.uxScore,
         result_json: result,
@@ -75,65 +76,43 @@ const App: React.FC = () => {
         screenshot_url: image.data,
       };
       setReports(prev => [newReport, ...prev]);
-      setActiveReport(newReport);
+      setSelectedReport(newReport);
       setCurrentPage('report');
-    } catch (err) {
-      console.error('Analysis failed:', err);
-      setError('An error occurred during the analysis. Please try again.');
-      // Go back to the page the user was on
-      if(inputType === 'URL' || inputType === 'Image') {
-        setCurrentPage('home');
-      } else {
-        setCurrentPage('new_review');
-      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'An unknown error occurred during analysis.');
+      setCurrentPage('home');
     }
-  }, [user]);
+  }, []);
 
-  const viewReport = (report: AnalysisReport) => {
-    setActiveReport(report);
+  const handleViewReport = (report: AnalysisReport) => {
+    setSelectedReport(report);
     setCurrentPage('report');
   };
 
-  const navigateToHome = () => {
-    setActiveReport(null);
-    setCurrentPage('home');
-  };
-
-  const renderPage = () => {
+  const renderContent = () => {
+    if (!isLoggedIn) {
+      return <AuthPage onLogin={handleLogin} />;
+    }
     switch (currentPage) {
-      case 'auth':
-        return <AuthPage onLogin={handleLogin} />;
       case 'home':
-        return <Dashboard 
-                  reports={reports} 
-                  onViewReport={viewReport} 
-                  onSubmit={handleAnalysisSubmit}
-                  error={error} 
-                />;
-      case 'new_review':
-        return <NewReview onSubmit={handleAnalysisSubmit} error={error} />;
+        return <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} error={error} />;
+      case 'new-review':
+        return <NewReview onSubmit={handleSubmit} error={error} />;
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return activeReport ? <ReportPage report={activeReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={viewReport} onSubmit={handleAnalysisSubmit} error={error} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} error={error} />;
       default:
-        return <Dashboard reports={reports} onViewReport={viewReport} onSubmit={handleAnalysisSubmit} error={error} />;
+        return <AuthPage onLogin={handleLogin} />;
     }
   };
 
   return (
-    <div className="bg-gray-50 min-h-screen font-sans text-text-primary">
-      {user && (
-        <Header 
-          user={user} 
-          onLogout={handleLogout} 
-          onNavigateToHome={navigateToHome}
-          onNavigateToNewReview={startNewReview}
-          currentPage={currentPage}
-        />
-      )}
-      <main className="pt-12">
-        {renderPage()}
+    <div className="font-sans text-text-primary min-h-screen">
+      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} />}
+      <main className="pt-28 sm:pt-32">
+          {renderContent()}
       </main>
     </div>
   );
