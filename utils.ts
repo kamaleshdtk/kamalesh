@@ -14,18 +14,22 @@ export const fileToDataUrl = (file: File): Promise<{ data: string; mimeType: str
 
 export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeType: string }> => {
   try {
-    // Validate URL format
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        url = 'https://' + url;
+    // Validate and format URL
+    let fullUrl = url;
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = 'https://' + fullUrl;
     }
-    new URL(url); // This will throw an error for invalid URLs
+    new URL(fullUrl); // This will throw an error for invalid URLs
 
-    // Explicitly request PNG format to avoid unsupported MIME types like image/gif
-    const screenshotServiceUrl = `https://image.thum.io/get/format/png/width/1280/crop/800/${url}`;
+    // PERMANENT FIX: The previous screenshot service was unreliable and causing 400 errors.
+    // Switched to a more stable, public, keyless service (WordPress mShots) for robustness.
+    const encodedUserUrl = encodeURIComponent(fullUrl);
+    const screenshotServiceUrl = `https://s0.wp.com/mshots/v1/${encodedUserUrl}?w=1280&h=800`;
+    
     const response = await fetch(screenshotServiceUrl);
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch screenshot. Service returned status: ${response.status}`);
+      throw new Error(`Failed to fetch screenshot. The service may be temporarily unavailable or the URL is invalid. (Status: ${response.status})`);
     }
     const blob = await response.blob();
 
@@ -37,8 +41,7 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
       const reader = new FileReader();
       reader.onloadend = () => {
         if (typeof reader.result === 'string') {
-          // The service should return PNG, but we'll use the blob's type for accuracy.
-          resolve({ data: reader.result, mimeType: blob.type });
+          resolve({ data: reader.result, mimeType: blob.type || 'image/jpeg' });
         } else {
           reject(new Error('Failed to convert screenshot blob to data URL.'));
         }

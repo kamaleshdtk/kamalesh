@@ -5,9 +5,9 @@ import { analyzeDesign } from './services/geminiService';
 import Header from './components/Header';
 import AuthPage from './components/pages/AuthPage';
 import Dashboard from './components/pages/Dashboard';
-import NewReview from './components/pages/NewReview';
 import LoadingScreen from './components/pages/LoadingScreen';
 import ReportPage from './components/pages/ReportPage';
+import { ToastProvider, useToast } from './contexts/ToastContext';
 
 // Mock user data
 const user = {
@@ -15,12 +15,12 @@ const user = {
   avatar: `https://i.pravatar.cc/150?u=demo-user`,
 };
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'new-review' | 'loading' | 'report'>('auth');
+  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report'>('auth');
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   useEffect(() => {
     try {
@@ -53,7 +53,7 @@ const App: React.FC = () => {
   };
 
   const navigateToHome = () => setCurrentPage('home');
-  const navigateToNewReview = () => setCurrentPage('new-review');
+  const navigateToNewReview = () => setCurrentPage('home');
 
   const handleSubmit = useCallback(async (
     image: { data: string; mimeType: string },
@@ -62,7 +62,6 @@ const App: React.FC = () => {
     inputType: 'URL' | 'Image'
   ) => {
     setCurrentPage('loading');
-    setError(null);
     try {
       const result = await analyzeDesign(image, reviewType);
       const newReport: AnalysisReport = {
@@ -75,16 +74,18 @@ const App: React.FC = () => {
         result_json: result,
         created_at: new Date().toISOString(),
         screenshot_url: image.data,
+        review_type: reviewType,
       };
       setReports(prev => [newReport, ...prev]);
       setSelectedReport(newReport);
       setCurrentPage('report');
+      addToast('Analysis complete! Report successfully generated.', 'success');
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'An unknown error occurred during analysis.');
+      addToast(err.message || 'An unknown error occurred during analysis.', 'error');
       setCurrentPage('home');
     }
-  }, []);
+  }, [addToast]);
 
   const handleViewReport = (report: AnalysisReport) => {
     setSelectedReport(report);
@@ -97,13 +98,11 @@ const App: React.FC = () => {
     }
     switch (currentPage) {
       case 'home':
-        return <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} error={error} />;
-      case 'new-review':
-        return <NewReview onSubmit={handleSubmit} error={error} />;
+        return <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} />;
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} error={error} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} />;
       default:
         return <AuthPage onLogin={handleLogin} />;
     }
@@ -118,5 +117,13 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+
+const App: React.FC = () => (
+  <ToastProvider>
+    <AppContent />
+  </ToastProvider>
+);
+
 
 export default App;

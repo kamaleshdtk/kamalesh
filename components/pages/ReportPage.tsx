@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { AnalysisReport, AnalysisIssue } from '../../types';
 
-type Tab = 'UI' | 'UX';
+import React from 'react';
+import { AnalysisReport, AnalysisIssue, ReviewType, CategoryAnalysis } from '../../types';
 
 const ScoreCard: React.FC<{ score: number; label: string; summary: string }> = ({ score, label, summary }) => {
     const getTextColor = (s: number) => {
@@ -9,21 +8,16 @@ const ScoreCard: React.FC<{ score: number; label: string; summary: string }> = (
         if (s >= 60) return 'text-yellow-600';
         return 'text-red-600';
     };
-    const getBgColor = (s: number) => {
-        if (s >= 85) return 'bg-green-50';
-        if (s >= 60) return 'bg-yellow-50';
-        return 'bg-red-50';
-    };
 
     return (
-        <div className={`p-6 rounded-2xl shadow-soft flex-1 bg-white border border-gray-200/60`}>
-            <div className="flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
+        <div className="p-6 rounded-2xl shadow-soft bg-white border border-gray-200/60 w-full">
+            <div className="flex items-center gap-6">
                 <div className={`flex-shrink-0 text-5xl font-bold ${getTextColor(score)}`}>
                     {score}
-                    <span className="text-2xl text-gray-400">/100</span>
+                    <span className="text-3xl font-semibold text-gray-400">/100</span>
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-text-primary">{label} Score</h3>
+                    <h3 className="text-xl font-bold text-text-primary">{label}</h3>
                     <p className="text-text-secondary mt-1">{summary}</p>
                 </div>
             </div>
@@ -33,7 +27,7 @@ const ScoreCard: React.FC<{ score: number; label: string; summary: string }> = (
 
 const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
     const getSeverityPill = (severity: string) => {
-        switch (severity.toLowerCase()) {
+        switch (severity?.toLowerCase()) {
             case 'critical': return 'bg-red-100 text-red-800';
             case 'major': return 'bg-yellow-100 text-yellow-800';
             case 'minor': return 'bg-blue-100 text-blue-800';
@@ -56,14 +50,31 @@ const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
     );
 };
 
+const CategoryAnalysisCard: React.FC<{ category: CategoryAnalysis }> = ({ category }) => (
+  <div className="mb-10">
+    <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+      <h3 className="text-xl font-bold text-text-primary">{category.categoryName}</h3>
+      <span className="text-lg font-bold text-gray-700">{Math.round(category.categoryScore)}/100</span>
+    </div>
+    <div className="space-y-5">
+      {category.issues && category.issues.length > 0 ? (
+        category.issues.map((issue, index) => <IssueCard key={index} issue={issue} />)
+      ) : (
+        <div className="text-center py-6 bg-white rounded-2xl border border-gray-200/60">
+            <p className="text-text-secondary">No specific issues found in this category.</p>
+        </div>
+      )}
+    </div>
+  </div>
+);
+
 
 const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ report, onBack }) => {
-  const [activeTab, setActiveTab] = useState<Tab>('UI');
-  const { result_json: results, screenshot_url } = report;
+  const { result_json: results, screenshot_url, review_type } = report;
 
-  const analysisData = activeTab === 'UI' ? results.uiAnalysis : results.uxAnalysis;
-  const hasUiIssues = results.uiAnalysis && results.uiAnalysis.length > 0;
-  const hasUxIssues = results.uxAnalysis && results.uxAnalysis.length > 0;
+  const isUiReview = review_type === ReviewType.UI;
+  const analysisTitle = isUiReview ? 'UI Analysis' : 'UX Analysis';
+  const categoryAnalyses = isUiReview ? results.uiCategoryAnalyses : results.uxCategoryAnalyses;
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -85,24 +96,22 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
         </div>
         <div className="lg:col-span-2">
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 mb-8">
-                <ScoreCard score={results.uiScore} label="UI" summary="Visual design & aesthetics." />
-                <ScoreCard score={results.uxScore} label="UX" summary="Usability & user experience." />
+                {isUiReview ? (
+                   <ScoreCard score={results.uiScore} label="Overall UI Score" summary="Average of all UI categories." />
+                ) : (
+                   <ScoreCard score={results.uxScore} label="Overall UX Score" summary="Average of all UX categories." />
+                )}
             </div>
             
-            <div className="mb-6">
-                <div className="border-b border-gray-200">
-                    <nav className="-mb-px flex space-x-4 sm:space-x-8" aria-label="Tabs">
-                        {hasUiIssues && <button onClick={() => setActiveTab('UI')} className={`${activeTab === 'UI' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}>UI Analysis</button>}
-                        {hasUxIssues && <button onClick={() => setActiveTab('UX')} className={`${activeTab === 'UX' ? 'border-primary text-primary' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'} whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg transition-colors`}>UX Analysis</button>}
-                    </nav>
-                </div>
-            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">{analysisTitle} Breakdown</h2>
 
-            <div className="space-y-5">
-                {analysisData.length > 0 ? analysisData.map((issue, index) => (
-                    <IssueCard key={index} issue={issue} />
-                )) : <p className="text-center py-8 text-text-secondary">No issues found for this category.</p>}
-            </div>
+            {categoryAnalyses && categoryAnalyses.length > 0 ? (
+                categoryAnalyses.map((category, index) => (
+                    <CategoryAnalysisCard key={index} category={category} />
+                ))
+            ) : (
+                <p className="text-center py-8 text-text-secondary">No analysis data available for this category.</p>
+            )}
         </div>
       </div>
     </div>

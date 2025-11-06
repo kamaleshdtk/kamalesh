@@ -12,12 +12,18 @@ export interface AnalysisIssue {
   severity: 'Critical' | 'Major' | 'Minor';
 }
 
+export interface CategoryAnalysis {
+  categoryName: string;
+  categoryScore: number;
+  issues: AnalysisIssue[];
+}
+
 export interface AnalysisResult {
-  uiScore: number;
-  uxScore: number;
-  uiAnalysis: AnalysisIssue[];
-  uxAnalysis: AnalysisIssue[];
+  uiScore: number; // Overall average score
+  uxScore: number; // Overall average score
   overallSummary: string;
+  uiCategoryAnalyses: CategoryAnalysis[];
+  uxCategoryAnalyses: CategoryAnalysis[];
 }
 
 export interface AnalysisReport {
@@ -30,4 +36,5 @@ export interface AnalysisReport {
   result_json: AnalysisResult;
   created_at: string;
   screenshot_url: string; // base64 data URL
+  review_type: ReviewType;
 }

@@ -2,6 +2,7 @@
 import React, { useState, useRef, useCallback, ChangeEvent } from 'react';
 import { AnalysisReport, ReviewType } from '../../types';
 import { fileToDataUrl, urlToDataUrl } from '../../utils';
+import { useToast } from '../../contexts/ToastContext';
 
 interface DashboardProps {
   reports: AnalysisReport[];
@@ -12,46 +13,42 @@ interface DashboardProps {
     inputValue: string,
     inputType: 'URL' | 'Image'
   ) => void;
-  error: string | null;
 }
 
-const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: DashboardProps['error'] }> = ({ onSubmit, error }) => {
+const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'] }> = ({ onSubmit }) => {
   const [reviewType, setReviewType] = useState<ReviewType>(ReviewType.UI);
   const [image, setImage] = useState<{ data: string; mimeType: string; name: string } | null>(null);
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { addToast } = useToast();
 
   const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       if(file.size > 4 * 1024 * 1024) { // 4MB limit
-        setFormError("File size exceeds 4MB. Please upload a smaller image.");
+        addToast("File size exceeds 4MB. Please upload a smaller image.", 'error');
         return;
       }
-      setFormError(null);
       const imageData = await fileToDataUrl(file);
       setImage(imageData);
       setUrl('');
     }
-  }, []);
+  }, [addToast]);
 
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
     if(image) setImage(null);
-    setFormError(null);
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!image && !url) {
-      setFormError('Please upload an image or enter a URL.');
+      addToast('Please upload an image or enter a URL.', 'error');
       return;
     }
     
     setIsSubmitting(true);
-    setFormError(null);
 
     try {
       if (image) {
@@ -61,13 +58,11 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
         onSubmit(screenshot, reviewType, url, 'URL');
       }
     } catch (err: any) {
-      setFormError(err.message || 'An unknown error occurred.');
+      addToast(err.message || 'An unknown error occurred.', 'error');
       setIsSubmitting(false);
     }
   };
   
-  const analysisInProgress = isSubmitting || !!error;
-
   return (
     <form 
       onSubmit={handleSubmit}
@@ -80,7 +75,7 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
             value={image ? `File: ${image.name}` : url}
             onChange={handleUrlChange}
             readOnly={!!image}
-            disabled={analysisInProgress}
+            disabled={isSubmitting}
             placeholder="Enter a website URL ( e.g., https://example.com)"
             className="w-full text-base bg-transparent focus:outline-none placeholder-gray-500 px-2 pt-2 disabled:opacity-50"
           />
@@ -92,7 +87,7 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              disabled={analysisInProgress}
+              disabled={isSubmitting}
               className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Upload image"
             >
@@ -105,7 +100,7 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
               <button
                 type="button"
                 onClick={() => setReviewType(ReviewType.UI)}
-                disabled={analysisInProgress}
+                disabled={isSubmitting}
                 className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${reviewType === ReviewType.UI ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'bg-gray-100 text-gray-600 font-medium hover:bg-gray-200'}`}
               >
                 UI Analyze
@@ -113,14 +108,14 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
               <button
                 type="button"
                 onClick={() => setReviewType(ReviewType.UX)}
-                disabled={analysisInProgress}
+                disabled={isSubmitting}
                 className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${reviewType === ReviewType.UX ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'bg-gray-100 text-gray-600 font-medium hover:bg-gray-200'}`}
               >
                 UX Analyze
               </button>
                <button
                   type="submit"
-                  disabled={!image && !url || analysisInProgress}
+                  disabled={!image && !url || isSubmitting}
                   className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                   aria-label="Start analysis"
                 >
@@ -135,9 +130,6 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'], error: Dash
             </div>
         </div>
       </div>
-      
-      {(formError || error) && <div className="text-red-600 text-sm px-3 pt-2 text-center">{formError || error}</div>}
-      
     </form>
   )
 }
@@ -184,12 +176,16 @@ const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisRep
                 </p>
                 <p className="text-sm text-gray-500 mt-1.5">{formatDate(report.created_at)}</p>
                 <div className="flex items-center gap-2 mt-4">
-                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
-                      UI: {report.ui_score}/100
-                    </span>
-                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
-                      UX: {report.ux_score}/100
-                    </span>
+                    {report.review_type === ReviewType.UI && (
+                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                        UI: {report.ui_score}/100
+                      </span>
+                    )}
+                    {report.review_type === ReviewType.UX && (
+                      <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                        UX: {report.ux_score}/100
+                      </span>
+                    )}
                 </div>
             </div>
         </button>
@@ -197,7 +193,7 @@ const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisRep
 };
 
 
-const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, error }) => {
+const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }) => {
   return (
     <>
       {/* Hero Section */}
@@ -209,7 +205,7 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, 
           <p className="mt-6 text-md sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto">
             Upload a screenshot or paste a URL to have your design analyzed by our expert AI in seconds. Stop guessing, start improving.
           </p>
-          <AnalysisForm onSubmit={onSubmit} error={error} />
+          <AnalysisForm onSubmit={onSubmit} />
         </div>
       </div>
       
