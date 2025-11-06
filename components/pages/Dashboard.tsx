@@ -150,30 +150,51 @@ const formatDate = (dateString: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisReport) => void}> = ({ report, onView }) => (
-    <button
-      className="bg-white rounded-2xl shadow-soft hover:shadow-lg transition-shadow duration-300 cursor-pointer overflow-hidden text-left w-full"
-      onClick={() => onView(report)}
-    >
-        <div className="h-48 bg-gray-100">
-            <img src={report.screenshot_url} alt="Screenshot" className="w-full h-full object-cover" />
-        </div>
-        <div className="p-4">
-            <p className="font-bold text-gray-800 truncate" title={report.input_value}>
-              {report.input_value}
-            </p>
-            <p className="text-sm text-gray-500 mt-1.5">{formatDate(report.created_at)}</p>
-            <div className="flex items-center gap-2 mt-4">
-                <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
-                  UI: {report.ui_score}/100
-                </span>
-                <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
-                  UX: {report.ux_score}/100
-                </span>
+const getDisplayName = (report: AnalysisReport): string => {
+  if (report.input_type === 'URL') {
+    try {
+      let fullUrl = report.input_value;
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = 'https://' + fullUrl;
+      }
+      const url = new URL(fullUrl);
+      return url.hostname.replace(/^www\./, '');
+    } catch (e) {
+      // Fallback for invalid URLs
+      return report.input_value;
+    }
+  }
+  return report.input_value; // Return filename for images
+};
+
+const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisReport) => void}> = ({ report, onView }) => {
+    const displayName = getDisplayName(report);
+
+    return (
+        <button
+          className="bg-white rounded-2xl shadow-soft hover:shadow-lg transition-shadow duration-300 cursor-pointer overflow-hidden text-left w-full"
+          onClick={() => onView(report)}
+        >
+            <div className="h-48 bg-gray-100">
+                <img src={report.screenshot_url} alt="Screenshot" className="w-full h-full object-cover" />
             </div>
-        </div>
-    </button>
-);
+            <div className="p-4">
+                <p className="font-bold text-gray-800 truncate" title={report.input_value}>
+                  {displayName}
+                </p>
+                <p className="text-sm text-gray-500 mt-1.5">{formatDate(report.created_at)}</p>
+                <div className="flex items-center gap-2 mt-4">
+                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                      UI: {report.ui_score}/100
+                    </span>
+                    <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                      UX: {report.ux_score}/100
+                    </span>
+                </div>
+            </div>
+        </button>
+    );
+};
 
 
 const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, error }) => {
@@ -197,12 +218,9 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
            <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-text-primary">Analyze History</h3>
-              <button className="text-sm font-medium text-primary hover:underline">
-                  View all >
-              </button>
            </div>
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {reports.slice(0, 3).map(report => (
+              {reports.map(report => (
                   <ReportCard key={report.id} report={report} onView={onViewReport} />
               ))}
           </div>
