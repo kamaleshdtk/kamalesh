@@ -8,6 +8,7 @@ interface HeaderProps {
   };
   onLogout: () => void;
   onNavigateHome: () => void;
+  onNavigateToNewReview: () => void;
 }
 
 const Logo: React.FC<{ onClick: () => void }> = ({ onClick }) => (
@@ -21,7 +22,7 @@ const Logo: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 );
 
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome }) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavigateToNewReview }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinkClasses = "px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors";
@@ -35,19 +36,20 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome }) => {
             <Logo onClick={onNavigateHome} />
             <nav className="hidden md:flex items-center gap-2">
               <a href="#" className={navLinkClasses}>Products</a>
-              <a href="#" className={navLinkClasses}>Resources</a>
               <a href="#" className={navLinkClasses}>Pricing</a>
+              <button onClick={onNavigateHome} className={navLinkClasses}>History</button>
             </nav>
           </div>
 
           {/* Right side: User Info + Mobile Menu Button */}
           <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-4">
-               <button className="p-1.5 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                  </svg>
-               </button>
+              <button
+                  onClick={onNavigateToNewReview}
+                  className="bg-primary text-white text-sm font-semibold px-4 py-2 rounded-lg hover:bg-primary-light transition-colors"
+                >
+                  + New Review
+              </button>
                <div className="flex items-center gap-2 cursor-pointer group">
                 <img src={user.avatar} alt="User Avatar" className="w-8 h-8 rounded-full" />
                  <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,15 +86,23 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome }) => {
         <div className="md:hidden" id="mobile-menu">
           <nav className="px-2 pt-2 pb-4 space-y-1">
              <a href="#" className={`${navLinkClasses} block`}>Products</a>
-             <a href="#" className={`${navLinkClasses} block`}>Resources</a>
              <a href="#" className={`${navLinkClasses} block`}>Pricing</a>
+             <button onClick={() => { onNavigateHome(); setIsMenuOpen(false); }} className={`${navLinkClasses} block w-full text-left`}>History</button>
+             <div className="px-2 pt-4">
+                <button
+                  onClick={() => { onNavigateToNewReview(); setIsMenuOpen(false); }}
+                  className="w-full bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-primary-light transition-colors"
+                >
+                  + New Review
+              </button>
+             </div>
             <div className="pt-2 mt-2 border-t border-gray-200">
                 <div className="flex items-center px-4 py-2">
                     <img className="h-9 w-9 rounded-full" src={user.avatar} alt="User Avatar" />
                     <span className="ml-3 font-medium text-text-primary">{user.name}</span>
                 </div>
                 <button
-                    onClick={onLogout}
+                    onClick={() => { onLogout(); setIsMenuOpen(false); }}
                     className={`w-full text-left ${navLinkClasses} block`}
                 >
                     Logout

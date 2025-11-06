@@ -53,6 +53,7 @@ const App: React.FC = () => {
   };
 
   const navigateToHome = () => setCurrentPage('home');
+  const navigateToNewReview = () => setCurrentPage('new-review');
 
   const handleSubmit = useCallback(async (
     image: { data: string; mimeType: string },
@@ -110,7 +111,7 @@ const App: React.FC = () => {
 
   return (
     <div className="font-sans text-text-primary min-h-screen">
-      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} />}
+      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToNewReview={navigateToNewReview} />}
       <main className="pt-28 sm:pt-32">
           {renderContent()}
       </main>
