@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { AnalysisReport, AnalysisIssue, ReviewType, CategoryAnalysis } from '../../types';
+import { encodeReportData } from '../../utils';
+import { useToast } from '../../contexts/ToastContext';
 
 const ScoreCard: React.FC<{ score: number; label: string; summary: string }> = ({ score, label, summary }) => {
     const getTextColor = (s: number) => {
@@ -10,14 +12,14 @@ const ScoreCard: React.FC<{ score: number; label: string; summary: string }> = (
     };
 
     return (
-        <div className="p-6 rounded-2xl shadow-soft bg-white border border-gray-200/60 w-full">
+        <div className="p-8 rounded-2xl shadow-soft bg-white border border-gray-200/60 w-full">
             <div className="flex items-center gap-6">
-                <div className={`flex-shrink-0 text-5xl font-bold ${getTextColor(score)}`}>
+                <div className={`flex-shrink-0 text-7xl font-extrabold ${getTextColor(score)}`}>
                     {score}
-                    <span className="text-3xl font-semibold text-gray-400">/100</span>
+                    <span className="text-4xl font-semibold text-gray-400">/100</span>
                 </div>
                 <div>
-                    <h3 className="text-xl font-bold text-text-primary">{label}</h3>
+                    <h3 className="text-2xl font-bold text-text-primary">{label}</h3>
                     <p className="text-text-secondary mt-1">{summary}</p>
                 </div>
             </div>
@@ -71,6 +73,24 @@ const CategoryAnalysisCard: React.FC<{ category: CategoryAnalysis }> = ({ catego
 
 const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ report, onBack }) => {
   const { result_json: results, screenshot_url, review_type } = report;
+  const { addToast } = useToast();
+
+  const handleShare = () => {
+    const encodedData = encodeReportData(report);
+    if(encodedData) {
+        const shareUrl = `${window.location.origin}${window.location.pathname}?report=${encodedData}`;
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => {
+                addToast('Share link copied to clipboard!', 'success');
+            })
+            .catch(err => {
+                console.error('Failed to copy share link: ', err);
+                addToast('Failed to copy link. Please try again.', 'error');
+            });
+    } else {
+        addToast('Could not generate share link.', 'error');
+    }
+  };
 
   const isUiReview = review_type === ReviewType.UI;
   const analysisTitle = isUiReview ? 'UI Analysis' : 'UX Analysis';
@@ -78,10 +98,20 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary mb-6 font-medium transition-colors">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-        Back to Home
-      </button>
+      <div className="flex items-center justify-between mb-6">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary font-medium transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            Back to Home
+          </button>
+          <button 
+            onClick={handleShare}
+            className="flex items-center gap-2 text-sm text-primary hover:bg-primary/10 bg-white border border-primary/20 px-4 py-2 rounded-lg font-semibold transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            Share
+          </button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         <div className="lg:col-span-1">

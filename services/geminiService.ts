@@ -100,23 +100,30 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
     - **Hierarchy:** Ensure a clear heading structure (H1-H6).
     - **Overflow:** Check for truncated or overflowing text.
 
-    ### 4. Visual Consistency
+    ### 4. Accessibility
+    - **Color Contrast:** Check for WCAG AA compliance between text and background.
+    - **Focus Indicators:** Ensure interactive elements have visible focus states for keyboard users.
+    - **Touch Target Size:** Verify buttons and links are at least 44x44px for touchscreens.
+    - **Alt Text:** Based on visual context, determine if images likely have meaningful alt text.
+    - **Semantic Structure:** Infer if appropriate HTML (e.g., <nav>, <button>) is used based on visual roles.
+
+    ### 5. Visual Consistency
     - **Style System:** Buttons, cards, and modals should follow a consistent style.
     - **Element Style:** Border radius, shadows, and icon styles should be consistent.
 
-    ### 5. Imagery & Illustration
+    ### 6. Imagery & Illustration
     - **Quality:** Images should have proper resolution and aspect ratio, with no pixelation.
     - **Consistency:** Illustrations should share a consistent style.
     - **Relevance:** Images should support the content, not just be decorative.
 
-    ### 6. Feedback & States
+    ### 7. Feedback & States
     - **Element States:** All interactive elements must have hover, active, disabled, and focus states.
     - **Feedback:** Loading indicators, and clear error/success messages must be present.
 
-    ### 7. Branding
+    ### 8. Branding
     - **Logo & Identity:** Logo placement should be consistent (typically top-left). Colors and tone must match the brand identity.
 
-    ### 8. Responsive & Device Adaptation
+    ### 9. Responsive & Device Adaptation
     - **Layout:** The layout must adapt correctly to mobile, tablet, and desktop without horizontal scrolling.
     - **Scaling:** Buttons and text should scale properly on smaller screens.
   `;

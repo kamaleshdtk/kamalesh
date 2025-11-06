@@ -200,6 +200,7 @@ const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisRep
 
 
 const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }) => {
+
   return (
     <>
       {/* Hero Section */}
@@ -221,6 +222,7 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }
            <div className="flex justify-between items-center mb-6">
               <h3 className="text-2xl font-bold text-text-primary">Analyze History</h3>
            </div>
+           
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {reports.map(report => (
                   <ReportCard key={report.id} report={report} onView={onViewReport} />

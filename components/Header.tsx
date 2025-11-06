@@ -30,13 +30,13 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
   return (
     <header className="bg-white/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-20 border-b border-gray-200/80">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-2">
+        <div className="flex justify-between items-center py-3">
           {/* Left side: Logo + Desktop Nav */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-8">
             <Logo onClick={onNavigateHome} />
-            <nav className="hidden md:flex items-center gap-2">
-              <a href="#" className={navLinkClasses}>Products</a>
-              <a href="#" className={navLinkClasses}>Pricing</a>
+            <nav className="hidden md:flex items-center gap-4">
+              <button disabled className={`${navLinkClasses} opacity-50 cursor-not-allowed`}>Products</button>
+              <button disabled className={`${navLinkClasses} opacity-50 cursor-not-allowed`}>Pricing</button>
               <button onClick={onNavigateHome} className={navLinkClasses}>History</button>
             </nav>
           </div>
@@ -85,8 +85,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
       {isMenuOpen && (
         <div className="md:hidden" id="mobile-menu">
           <nav className="px-2 pt-2 pb-4 space-y-1">
-             <a href="#" className={`${navLinkClasses} block`}>Products</a>
-             <a href="#" className={`${navLinkClasses} block`}>Pricing</a>
+             <button disabled className={`${navLinkClasses} block w-full text-left opacity-50 cursor-not-allowed`}>Products</button>
+             <button disabled className={`${navLinkClasses} block w-full text-left opacity-50 cursor-not-allowed`}>Pricing</button>
              <button onClick={() => { onNavigateHome(); setIsMenuOpen(false); }} className={`${navLinkClasses} block w-full text-left`}>History</button>
              <div className="px-2 pt-4">
                 <button
