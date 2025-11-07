@@ -178,19 +178,43 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
         const pageHeight = doc.internal.pageSize.getHeight();
         const margin = 15;
         const contentWidth = pageWidth - margin * 2;
-        let yPos = margin;
+        let yPos = 0;
+
+        const addHeaderAndFooter = () => {
+            const pageCount = doc.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(9);
+                doc.setTextColor('#7E57FF');
+                doc.setFont('helvetica', 'bold');
+                doc.text('UXRay AI Report', margin, 10);
+                doc.setFontSize(9);
+                doc.setTextColor('#6B7280');
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Page ${i} of ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+            }
+        };
+
+        const checkPageBreak = (heightNeeded: number) => {
+            if (yPos + heightNeeded > pageHeight - margin - 15) {
+                doc.addPage();
+                yPos = margin + 5;
+            }
+        };
 
         const addWrappedText = (text: string, x: number, y: number, width: number, options = {}) => {
             const lines = doc.splitTextToSize(text, width);
             doc.text(lines, x, y, options);
-            const lineHeight = doc.getLineHeight() * 0.352778; // Convert to mm
+            const lineHeight = doc.getLineHeight() * 0.352778;
             return y + (lines.length * lineHeight);
         };
+        
+        yPos = margin + 5;
         
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(24);
         doc.setTextColor('#111111');
-        doc.text('UXRay AI Analysis Report', pageWidth / 2, yPos, { align: 'center' });
+        doc.text('Analysis Report', pageWidth / 2, yPos, { align: 'center' });
         yPos += 15;
         
         doc.setFont('helvetica', 'normal');
@@ -198,45 +222,54 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
         doc.setTextColor('#6B7280');
         const displayName = getDisplayName(report);
         const reportDate = new Date(report.created_at).toLocaleDateString();
-        doc.text(`Analyzed: ${displayName}`, margin, yPos);
-        doc.text(`Date: ${reportDate}`, pageWidth - margin, yPos, { align: 'right' });
+        doc.text(`Analyzed Target: ${displayName}`, margin, yPos);
+        doc.text(`Analysis Date: ${reportDate}`, pageWidth - margin, yPos, { align: 'right' });
+        yPos += 8;
+        doc.setDrawColor('#E5E7EB');
+        doc.line(margin, yPos, pageWidth - margin, yPos);
         yPos += 10;
         
+        checkPageBreak(80);
         const previewElement = document.getElementById('design-preview-img') as HTMLImageElement;
+        const summaryWidth = contentWidth / 2 - 5;
+        const previewWidth = contentWidth / 2 - 5;
+        
         if (previewElement) {
             const canvas = await html2canvas(previewElement, { useCORS: true, scale: 2 });
             const imgData = canvas.toDataURL('image/png');
-            const imgHeight = (canvas.height * contentWidth) / canvas.width;
-            if (yPos + imgHeight > pageHeight - margin) {
-                doc.addPage();
-                yPos = margin;
-            }
-            doc.addImage(imgData, 'PNG', margin, yPos, contentWidth, imgHeight);
-            yPos += imgHeight + 10;
+            const imgHeight = (canvas.height * previewWidth) / canvas.width;
+            doc.addImage(imgData, 'PNG', margin, yPos, previewWidth, imgHeight);
         }
-        
+
+        const summaryX = margin + previewWidth + 10;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(14);
         doc.setTextColor('#111111');
-        doc.text('Overall Summary', margin, yPos);
-        yPos += 6;
+        doc.text('Overall Summary', summaryX, yPos);
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(11);
-        yPos = addWrappedText(results.overallSummary, margin, yPos, contentWidth) + 10;
+        addWrappedText(results.overallSummary, summaryX, yPos + 8, summaryWidth);
         
+        const previewHeight = previewElement ? (previewElement.height * previewWidth) / previewElement.width : 0;
+        yPos += Math.max(previewHeight, 40) + 10;
+        
+        checkPageBreak(30);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 10;
         const scoreLabel = isUiReview ? 'Overall UI Score' : 'Overall UX Score';
-        
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(14);
+        doc.setFontSize(16);
         doc.setTextColor('#111111');
-        doc.text(scoreLabel, margin, yPos);
-        
+        doc.text(scoreLabel, margin, yPos + 5);
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(28);
-        doc.setTextColor(overallScore >= 85 ? '#16A34A' : overallScore >= 60 ? '#F59E0B' : '#DC2626');
-        doc.text(`${overallScore}`, pageWidth - margin, yPos + 2, { align: 'right' });
+        doc.setFontSize(32);
+        doc.setTextColor(overallScore >= 85 ? '#2DD4BF' : overallScore >= 60 ? '#F59E0B' : '#DC2626');
+        doc.text(`${overallScore} / 100`, pageWidth - margin, yPos + 7, { align: 'right' });
         yPos += 15;
         
+        checkPageBreak(15);
+        doc.line(margin, yPos, pageWidth - margin, yPos);
+        yPos += 15;
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(18);
         doc.setTextColor('#111111');
@@ -244,60 +277,63 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
         yPos += 10;
         
         for (const category of categoryAnalyses) {
-            if (yPos > pageHeight - margin - 30) { doc.addPage(); yPos = margin; }
-            doc.setDrawColor('#E5E7EB');
-            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+            checkPageBreak(12);
+            doc.setFillColor('#F9FAFB');
+            doc.rect(margin, yPos, contentWidth, 10, 'F');
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
             doc.setTextColor('#111111');
-            doc.text(category.categoryName, margin, yPos + 5);
-            doc.text(`${Math.round(category.categoryScore)}/100`, pageWidth - margin, yPos + 5, { align: 'right' });
-            yPos += 12;
+            doc.text(category.categoryName, margin + 2, yPos + 7);
+            doc.text(`${Math.round(category.categoryScore)}/100`, pageWidth - margin - 2, yPos + 7, { align: 'right' });
+            yPos += 15;
 
             if (category.issues.length === 0) {
-                 if (yPos > pageHeight - margin - 15) { doc.addPage(); yPos = margin; }
-                 doc.setFont('helvetica', 'normal');
+                 checkPageBreak(10);
+                 doc.setFont('helvetica', 'italic');
                  doc.setFontSize(10);
                  doc.setTextColor('#6B7280');
-                 doc.text('No specific issues found in this category.', margin, yPos);
+                 doc.text('No specific issues found in this category.', margin + 2, yPos);
                  yPos += 10;
             } else {
               for (const issue of category.issues) {
-                  const titleHeight = doc.splitTextToSize(issue.issueTitle, contentWidth).length * 5;
-                  const descHeight = doc.splitTextToSize(issue.issueDescription, contentWidth).length * 4;
-                  const recHeight = doc.splitTextToSize(issue.recommendation, contentWidth).length * 4;
-                  const lawHeight = issue.relevantLaw ? 4 : 0;
-                  const estimatedHeight = titleHeight + descHeight + recHeight + lawHeight + 15;
-
-                  if (yPos + estimatedHeight > pageHeight - margin) {
-                      doc.addPage();
-                      yPos = margin;
-                  }
+                  const severityColors = { 'Critical': '#EF4444', 'Major': '#F97316', 'Minor': '#3B82F6' };
+                  const estimatedHeight = doc.splitTextToSize(issue.issueTitle + issue.issueDescription + issue.recommendation, contentWidth - 8).length * 5 + 15;
+                  checkPageBreak(estimatedHeight);
+                  
+                  doc.setFillColor(severityColors[issue.severity] || '#6B7280');
+                  doc.rect(margin, yPos, 3, 8, 'F');
 
                   doc.setFont('helvetica', 'bold');
                   doc.setFontSize(12);
                   doc.setTextColor('#111111');
-                  yPos = addWrappedText(issue.issueTitle, margin, yPos, contentWidth) + 1;
+                  yPos = addWrappedText(issue.issueTitle, margin + 5, yPos + 3, contentWidth - 10) + 2;
 
                   if (issue.relevantLaw) {
-                      doc.setFont('helvetica', 'normal');
+                      doc.setFont('helvetica', 'italic');
                       doc.setFontSize(10);
                       doc.setTextColor('#7E57FF');
-                      yPos = addWrappedText(`Relevant Law: ${issue.relevantLaw}`, margin, yPos, contentWidth) + 2;
+                      yPos = addWrappedText(`Relevant Principle: ${issue.relevantLaw}`, margin + 5, yPos, contentWidth - 10) + 3;
                   }
 
                   doc.setFont('helvetica', 'normal');
                   doc.setFontSize(10);
                   doc.setTextColor('#6B7280');
-                  yPos = addWrappedText(`Description: ${issue.issueDescription}`, margin, yPos, contentWidth) + 2;
+                  yPos = addWrappedText(issue.issueDescription, margin + 5, yPos, contentWidth - 10) + 4;
+                  
+                  doc.setFillColor('#F3F4F6');
+                  doc.rect(margin + 5, yPos, contentWidth-10, 0.5, 'F');
+                  yPos += 2;
 
                   doc.setFont('helvetica', 'normal');
+                  doc.setFontSize(10);
                   doc.setTextColor('#15803D');
-                  yPos = addWrappedText(`Recommendation: ${issue.recommendation}`, margin, yPos, contentWidth) + 8;
+                  yPos = addWrappedText(`Recommendation: ${issue.recommendation}`, margin + 5, yPos, contentWidth - 10) + 10;
               }
             }
+            yPos += 5;
         }
         
+        addHeaderAndFooter();
         doc.save(`UXRay-Report-${getDisplayName(report)}.pdf`);
 
     } catch (error) {

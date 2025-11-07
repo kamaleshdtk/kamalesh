@@ -55,7 +55,6 @@ const AppContent: React.FC = () => {
   };
 
   const navigateToHome = () => setCurrentPage('home');
-  const navigateToNewReview = () => setCurrentPage('home');
   const navigateToHistory = () => setCurrentPage('history');
 
   const handleSubmit = useCallback(async (
@@ -144,7 +143,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="font-sans text-text-primary min-h-screen">
-      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToNewReview={navigateToNewReview} onNavigateToHistory={navigateToHistory} />}
+      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToHistory={navigateToHistory} />}
       <main className="pt-28 sm:pt-32">
           {renderContent()}
       </main>
