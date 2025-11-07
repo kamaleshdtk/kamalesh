@@ -1,7 +1,8 @@
 
+
 import React, { useState, useRef, useCallback, ChangeEvent } from 'react';
 import { AnalysisReport, ReviewType } from '../../types';
-import { fileToDataUrl, urlToDataUrl } from '../../utils';
+import { fileToDataUrl, urlToDataUrl, getDisplayName } from '../../utils';
 import { useToast } from '../../contexts/ToastContext';
 
 interface DashboardProps {
@@ -142,23 +143,6 @@ const formatDate = (dateString: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const getDisplayName = (report: AnalysisReport): string => {
-  if (report.input_type === 'URL') {
-    try {
-      let fullUrl = report.input_value;
-      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-        fullUrl = 'https://' + fullUrl;
-      }
-      const url = new URL(fullUrl);
-      return url.hostname.replace(/^www\./, '');
-    } catch (e) {
-      // Fallback for invalid URLs
-      return report.input_value;
-    }
-  }
-  return report.input_value; // Return filename for images
-};
-
 const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisReport) => void}> = ({ report, onView }) => {
     const displayName = getDisplayName(report);
     const score = report.review_type === ReviewType.UI ? report.ui_score : report.ux_score;
@@ -198,6 +182,18 @@ const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisRep
     );
 };
 
+const HistoryEmptyState: React.FC = () => (
+  <div className="text-center py-20 px-6 bg-white rounded-2xl shadow-soft border border-gray-200/60">
+      <div className="mx-auto h-16 w-16 flex items-center justify-center rounded-full bg-gray-100 text-gray-400">
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          </svg>
+      </div>
+      <h3 className="mt-5 text-xl font-bold text-text-primary">Your History is Empty</h3>
+      <p className="mt-2 text-base text-text-secondary">Start your first analysis to see your reports here.</p>
+  </div>
+);
+
 
 const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }) => {
 
@@ -217,19 +213,21 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }
       </div>
       
       {/* Reports History Section */}
-      {reports.length > 0 && (
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
-           <div className="flex justify-between items-center mb-6">
-              <h3 className="text-2xl font-bold text-text-primary">Analyze History</h3>
-           </div>
-           
-           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {reports.map(report => (
-                  <ReportCard key={report.id} report={report} onView={onViewReport} />
-              ))}
-          </div>
-        </div>
-      )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
+         <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-text-primary">Analyze History</h3>
+         </div>
+         
+         {reports.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {reports.map(report => (
+                    <ReportCard key={report.id} report={report} onView={onViewReport} />
+                ))}
+            </div>
+         ) : (
+            <HistoryEmptyState />
+         )}
+      </div>
     </>
   );
 };

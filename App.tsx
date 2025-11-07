@@ -8,7 +8,6 @@ import Dashboard from './components/pages/Dashboard';
 import LoadingScreen from './components/pages/LoadingScreen';
 import ReportPage from './components/pages/ReportPage';
 import { ToastProvider, useToast } from './contexts/ToastContext';
-import { decodeReportData } from './utils';
 
 // Mock user data
 const user = {
@@ -22,27 +21,6 @@ const AppContent: React.FC = () => {
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const { addToast } = useToast();
-
-  // Handle shared report links on initial load
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const reportData = urlParams.get('report');
-    if (reportData) {
-        // Clear the URL parameter to avoid reprocessing on re-render
-        window.history.replaceState({}, document.title, window.location.pathname);
-        const decodedReport = decodeReportData(reportData);
-        if (decodedReport) {
-            setSelectedReport(decodedReport);
-            setIsLoggedIn(true); // Show header for shared reports
-            setCurrentPage('report');
-        } else {
-            addToast('The shared report link is invalid or corrupted.', 'error');
-            // Fall back to the auth page
-            setCurrentPage('auth');
-        }
-    }
-  }, [addToast]);
-
 
   useEffect(() => {
     try {

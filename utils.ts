@@ -1,5 +1,5 @@
 
-import pako from 'pako';
+
 import { AnalysisReport } from './types';
 
 export const fileToDataUrl = (file: File): Promise<{ data: string; mimeType: string; name: string; }> => {
@@ -58,42 +58,19 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
   }
 };
 
-// Function to compress and encode report data for sharing
-export const encodeReportData = (report: AnalysisReport): string => {
-  try {
-    const jsonString = JSON.stringify(report);
-    const compressed = pako.deflate(jsonString);
-
-    // FIX: Process Uint8Array in chunks to avoid "Maximum call stack size exceeded" for large reports.
-    let binaryString = '';
-    const CHUNK_SIZE = 8192; // Process in 8KB chunks
-    for (let i = 0; i < compressed.length; i += CHUNK_SIZE) {
-        binaryString += String.fromCharCode.apply(null, compressed.subarray(i, i + CHUNK_SIZE) as unknown as number[]);
+export const getDisplayName = (report: AnalysisReport): string => {
+  if (report.input_type === 'URL') {
+    try {
+      let fullUrl = report.input_value;
+      if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+        fullUrl = 'https://' + fullUrl;
+      }
+      const url = new URL(fullUrl);
+      return url.hostname.replace(/^www\./, '');
+    } catch (e) {
+      // Fallback for invalid URLs
+      return report.input_value;
     }
-
-    return encodeURIComponent(btoa(binaryString));
-  } catch (e) {
-    console.error("Failed to encode report data:", e);
-    return "";
   }
-};
-
-// Function to decode and decompress report data from a URL
-export const decodeReportData = (encodedData: string): AnalysisReport | null => {
-  try {
-    // Decode from URL-safe format and then from Base64
-    const compressedString = atob(decodeURIComponent(encodedData));
-    // pako.inflate expects a Uint8Array (or similar). The binary string from atob must be converted.
-    const compressedBytes = new Uint8Array(compressedString.length);
-    for (let i = 0; i < compressedString.length; i++) {
-        compressedBytes[i] = compressedString.charCodeAt(i);
-    }
-    // Inflate (decompress) the string
-    const jsonString = pako.inflate(compressedBytes, { to: 'string' });
-    // Parse the JSON string back into an object
-    return JSON.parse(jsonString) as AnalysisReport;
-  } catch (e) {
-    console.error("Failed to decode report data:", e);
-    return null;
-  }
+  return report.input_value; // Return filename for images
 };

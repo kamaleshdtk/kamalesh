@@ -1,8 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { AnalysisReport, AnalysisIssue, ReviewType, CategoryAnalysis } from '../../types';
-import { encodeReportData } from '../../utils';
 import { useToast } from '../../contexts/ToastContext';
+import { getDisplayName } from '../../utils';
 
 const ScoreCard: React.FC<{ score: number; label: string; summary: string }> = ({ score, label, summary }) => {
     const getTextColor = (s: number) => {
@@ -53,16 +55,16 @@ const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
 };
 
 const CategoryAnalysisCard: React.FC<{ category: CategoryAnalysis }> = ({ category }) => (
-  <div className="mb-10">
-    <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+  <div>
+    <div className="flex items-baseline gap-3 mb-4 pb-2 border-b border-gray-200">
       <h3 className="text-xl font-bold text-text-primary">{category.categoryName}</h3>
-      <span className="text-lg font-bold text-gray-700">{Math.round(category.categoryScore)}/100</span>
+      <span className="text-lg font-semibold text-gray-600">{Math.round(category.categoryScore)}/100</span>
     </div>
     <div className="space-y-5">
       {category.issues && category.issues.length > 0 ? (
         category.issues.map((issue, index) => <IssueCard key={index} issue={issue} />)
       ) : (
-        <div className="text-center py-6 bg-white rounded-2xl border border-gray-200/60">
+        <div className="text-center py-6 bg-white rounded-2xl border border-gray-200/60 shadow-soft">
             <p className="text-text-secondary">No specific issues found in this category.</p>
         </div>
       )}
@@ -74,23 +76,162 @@ const CategoryAnalysisCard: React.FC<{ category: CategoryAnalysis }> = ({ catego
 const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ report, onBack }) => {
   const { result_json: results, screenshot_url, review_type } = report;
   const { addToast } = useToast();
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleShare = () => {
-    const encodedData = encodeReportData(report);
-    if(encodedData) {
-        const shareUrl = `${window.location.origin}${window.location.pathname}?report=${encodedData}`;
-        navigator.clipboard.writeText(shareUrl)
-            .then(() => {
-                addToast('Share link copied to clipboard!', 'success');
-            })
-            .catch(err => {
-                console.error('Failed to copy share link: ', err);
-                addToast('Failed to copy link. Please try again.', 'error');
-            });
-    } else {
-        addToast('Could not generate share link.', 'error');
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    addToast('Generating PDF... This may take a moment.', 'success');
+
+    try {
+        const doc = new jsPDF('p', 'mm', 'a4');
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const margin = 15;
+        const contentWidth = pageWidth - margin * 2;
+        let yPos = margin;
+
+        const addWrappedText = (text: string, x: number, y: number, width: number, options = {}) => {
+            const lines = doc.splitTextToSize(text, width);
+            doc.text(lines, x, y, options);
+            const lineHeight = doc.getLineHeight() * 0.352778; // Convert to mm
+            return y + (lines.length * lineHeight);
+        };
+        
+        // --- 1. Title ---
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(24);
+        doc.setTextColor('#111111');
+        doc.text('UXRay AI Analysis Report', pageWidth / 2, yPos, { align: 'center' });
+        yPos += 15;
+
+        // --- 2. Report Info ---
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor('#6B7280');
+        const displayName = getDisplayName(report);
+        const reportDate = new Date(report.created_at).toLocaleDateString();
+        doc.text(`Analyzed: ${displayName}`, margin, yPos);
+        doc.text(`Date: ${reportDate}`, pageWidth - margin, yPos, { align: 'right' });
+        yPos += 10;
+        
+        // --- 3. Design Preview ---
+        const previewElement = document.getElementById('design-preview-img') as HTMLImageElement;
+        if (previewElement) {
+            const canvas = await html2canvas(previewElement, { useCORS: true, scale: 2 });
+            const imgData = canvas.toDataURL('image/png');
+            const imgHeight = (canvas.height * contentWidth) / canvas.width;
+            if (yPos + imgHeight > pageHeight - margin) {
+                doc.addPage();
+                yPos = margin;
+            }
+            doc.addImage(imgData, 'PNG', margin, yPos, contentWidth, imgHeight);
+            yPos += imgHeight + 10;
+        }
+
+        // --- 4. Overall Summary ---
+        if (yPos > pageHeight - margin - 20) { doc.addPage(); yPos = margin; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor('#111111');
+        doc.text('Overall Summary', margin, yPos);
+        yPos += 6;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        yPos = addWrappedText(results.overallSummary, margin, yPos, contentWidth) + 10;
+
+        // --- 5. Score ---
+        if (yPos > pageHeight - margin - 20) { doc.addPage(); yPos = margin; }
+        const isUiReview = report.review_type === ReviewType.UI;
+        const score = isUiReview ? results.uiScore : results.uxScore;
+        const scoreLabel = isUiReview ? 'Overall UI Score' : 'Overall UX Score';
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(14);
+        doc.setTextColor('#111111');
+        doc.text(scoreLabel, margin, yPos);
+        
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(28);
+        doc.setTextColor(score >= 85 ? '#16A34A' : score >= 60 ? '#F59E0B' : '#DC2626');
+        doc.text(`${score}`, pageWidth - margin, yPos + 2, { align: 'right' });
+        yPos += 15;
+
+        // --- 6. Analysis Breakdown ---
+        const categoryAnalyses = isUiReview ? results.uiCategoryAnalyses : results.uxCategoryAnalyses;
+        const analysisTitle = isUiReview ? 'UI Analysis Breakdown' : 'UX Analysis Breakdown';
+        
+        if (yPos > pageHeight - margin - 20) { doc.addPage(); yPos = margin; }
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.setTextColor('#111111');
+        doc.text(analysisTitle, margin, yPos);
+        yPos += 10;
+        
+        for (const category of categoryAnalyses) {
+            if (yPos > pageHeight - margin - 30) { doc.addPage(); yPos = margin; }
+            doc.setDrawColor('#E5E7EB');
+            doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.setTextColor('#111111');
+            doc.text(category.categoryName, margin, yPos + 5);
+            doc.text(`${Math.round(category.categoryScore)}/100`, pageWidth - margin, yPos + 5, { align: 'right' });
+            yPos += 12;
+
+            if (category.issues.length === 0) {
+                 if (yPos > pageHeight - margin - 15) { doc.addPage(); yPos = margin; }
+                 doc.setFont('helvetica', 'normal');
+                 doc.setFontSize(10);
+                 doc.setTextColor('#6B7280');
+                 doc.text('No specific issues found in this category.', margin, yPos);
+                 yPos += 10;
+            } else {
+              for (const issue of category.issues) {
+                  const titleHeight = doc.splitTextToSize(issue.issueTitle, contentWidth).length * 5;
+                  const descHeight = doc.splitTextToSize(issue.issueDescription, contentWidth).length * 4;
+                  const recHeight = doc.splitTextToSize(issue.recommendation, contentWidth).length * 4;
+                  const lawHeight = issue.relevantLaw ? 4 : 0;
+                  const estimatedHeight = titleHeight + descHeight + recHeight + lawHeight + 15;
+
+                  if (yPos + estimatedHeight > pageHeight - margin) {
+                      doc.addPage();
+                      yPos = margin;
+                  }
+
+                  doc.setFont('helvetica', 'bold');
+                  doc.setFontSize(12);
+                  doc.setTextColor('#111111');
+                  yPos = addWrappedText(issue.issueTitle, margin, yPos, contentWidth) + 1;
+
+                  if (issue.relevantLaw) {
+                      doc.setFont('helvetica', 'normal');
+                      doc.setFontSize(10);
+                      doc.setTextColor('#7E57FF');
+                      yPos = addWrappedText(`Relevant Law: ${issue.relevantLaw}`, margin, yPos, contentWidth) + 2;
+                  }
+
+                  doc.setFont('helvetica', 'normal');
+                  doc.setFontSize(10);
+                  doc.setTextColor('#6B7280');
+                  yPos = addWrappedText(`Description: ${issue.issueDescription}`, margin, yPos, contentWidth) + 2;
+
+                  doc.setFont('helvetica', 'normal');
+                  doc.setTextColor('#15803D');
+                  yPos = addWrappedText(`Recommendation: ${issue.recommendation}`, margin, yPos, contentWidth) + 8;
+              }
+            }
+        }
+        
+        doc.save(`UXRay-Report-${getDisplayName(report)}.pdf`);
+
+    } catch (error) {
+        console.error("Error generating native PDF:", error);
+        addToast('Failed to generate PDF. Please try again.', 'error');
+    } finally {
+        setIsExporting(false);
     }
   };
+
 
   const isUiReview = review_type === ReviewType.UI;
   const analysisTitle = isUiReview ? 'UI Analysis' : 'UX Analysis';
@@ -104,12 +245,23 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
             Back to Home
           </button>
           <button 
-            onClick={handleShare}
-            className="flex items-center gap-2 text-sm text-primary hover:bg-primary/10 bg-white border border-primary/20 px-4 py-2 rounded-lg font-semibold transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12s-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-            </svg>
-            Share
+            onClick={handleExportPDF}
+            disabled={isExporting}
+            className="flex items-center gap-2 text-sm text-primary hover:bg-primary/10 bg-white border border-primary/20 px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
+          >
+            {isExporting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  Exporting...
+                </>
+            ) : (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Export as PDF
+                </>
+            )}
           </button>
       </div>
 
@@ -117,7 +269,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
         <div className="lg:col-span-1">
             <div className="sticky top-28">
                 <h2 className="text-2xl font-bold mb-4">Design Preview</h2>
-                <img src={screenshot_url} alt="Analyzed Screenshot" className="rounded-2xl shadow-form-soft w-full border border-gray-200/80" />
+                <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-2xl shadow-form-soft w-full border border-gray-200/80" />
                 <div className="mt-6 bg-white p-5 rounded-2xl shadow-soft border border-gray-200/60">
                     <h3 className="font-bold text-lg mb-3">Overall Summary</h3>
                     <p className="text-text-secondary">{results.overallSummary}</p>
@@ -136,9 +288,11 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
             <h2 className="text-2xl font-bold text-gray-800 mb-6">{analysisTitle} Breakdown</h2>
 
             {categoryAnalyses && categoryAnalyses.length > 0 ? (
-                categoryAnalyses.map((category, index) => (
-                    <CategoryAnalysisCard key={index} category={category} />
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {categoryAnalyses.map((category, index) => (
+                      <CategoryAnalysisCard key={index} category={category} />
+                  ))}
+                </div>
             ) : (
                 <p className="text-center py-8 text-text-secondary">No analysis data available for this category.</p>
             )}
