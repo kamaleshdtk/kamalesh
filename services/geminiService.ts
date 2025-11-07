@@ -52,8 +52,8 @@ const responseSchema = {
 const getReviewPrompt = (reviewType: ReviewType): string => {
   const basePrompt = `
     You are UXRay, a world-class AI assistant specializing in UI & UX design analysis.
-    Your task is to analyze the provided screenshot and generate a detailed, structured report based on the checklists below.
-    Your tone must be professional, insightful, and helpful.
+    Your task is to conduct a strict, professional audit of the provided screenshot. Do not provide general tips or nice suggestions. Be critical and objective, identifying concrete violations of established design principles based on the checklists below.
+    Your tone must be that of an expert auditor: direct, precise, and authoritative.
 
     **CRITICAL INSTRUCTION: You MUST be deterministic. For the exact same input image, you MUST produce the exact same JSON output, including scores and descriptions. Do not introduce any randomness.**
 
