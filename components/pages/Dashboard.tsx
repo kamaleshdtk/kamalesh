@@ -1,9 +1,9 @@
 
-
 import React, { useState, useRef, useCallback, ChangeEvent } from 'react';
 import { AnalysisReport, ReviewType } from '../../types';
-import { fileToDataUrl, urlToDataUrl, getDisplayName } from '../../utils';
+import { fileToDataUrl, urlToDataUrl, getDisplayName, formatDate } from '../../utils';
 import { useToast } from '../../contexts/ToastContext';
+import ScreenshotFallbackModal from './ScreenshotFallbackModal';
 
 interface DashboardProps {
   reports: AnalysisReport[];
@@ -12,15 +12,21 @@ interface DashboardProps {
     image: { data: string; mimeType: string },
     reviewType: ReviewType,
     inputValue: string,
-    inputType: 'URL' | 'Image'
+    inputType: 'URL' | 'Image',
+    forceRefresh: boolean
   ) => void;
+  onNavigateToHistory: () => void;
 }
 
-const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'] }> = ({ onSubmit }) => {
+const AnalysisForm: React.FC<{
+    onSubmit: DashboardProps['onSubmit'];
+    onScreenshotFail: (url: string, reviewType: ReviewType) => void;
+}> = ({ onSubmit, onScreenshotFail }) => {
   const [reviewType, setReviewType] = useState<ReviewType>(ReviewType.UI);
   const [image, setImage] = useState<{ data: string; mimeType: string; name: string } | null>(null);
   const [url, setUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [forceRefresh, setForceRefresh] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
@@ -53,13 +59,17 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'] }> = ({ onSu
 
     try {
       if (image) {
-        onSubmit(image, reviewType, image.name, 'Image');
+        onSubmit(image, reviewType, image.name, 'Image', forceRefresh);
       } else if (url) {
         const screenshot = await urlToDataUrl(url);
-        onSubmit(screenshot, reviewType, url, 'URL');
+        onSubmit(screenshot, reviewType, url, 'URL', forceRefresh);
       }
     } catch (err: any) {
-      addToast(err.message || 'An unknown error occurred.', 'error');
+      if (url) {
+        onScreenshotFail(url, reviewType);
+      } else {
+        addToast(err.message || 'An unknown error occurred.', 'error');
+      }
       setIsSubmitting(false);
     }
   };
@@ -102,7 +112,7 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'] }> = ({ onSu
                 type="button"
                 onClick={() => setReviewType(ReviewType.UI)}
                 disabled={isSubmitting}
-                className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${reviewType === ReviewType.UI ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'bg-gray-100 text-gray-600 font-medium hover:bg-gray-200'}`}
+                className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${reviewType === ReviewType.UI ? 'bg-primary text-white font-semibold' : 'bg-gray-100 text-gray-600 font-medium hover:bg-gray-200'}`}
               >
                 UI Analyze
               </button>
@@ -110,7 +120,7 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'] }> = ({ onSu
                 type="button"
                 onClick={() => setReviewType(ReviewType.UX)}
                 disabled={isSubmitting}
-                className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${reviewType === ReviewType.UX ? 'bg-indigo-100 text-indigo-700 font-semibold' : 'bg-gray-100 text-gray-600 font-medium hover:bg-gray-200'}`}
+                className={`px-4 py-2 text-sm rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${reviewType === ReviewType.UX ? 'bg-primary text-white font-semibold' : 'bg-gray-100 text-gray-600 font-medium hover:bg-gray-200'}`}
               >
                 UX Analyze
               </button>
@@ -131,17 +141,25 @@ const AnalysisForm: React.FC<{ onSubmit: DashboardProps['onSubmit'] }> = ({ onSu
             </div>
         </div>
       </div>
+       <div className="mt-4 flex justify-end">
+            <label className="flex items-center gap-2.5 text-sm text-gray-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={forceRefresh}
+                onChange={(e) => setForceRefresh(e.target.checked)}
+                className="sr-only peer"
+              />
+              <span className="w-5 h-5 rounded-full border-2 border-gray-300 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-colors">
+                 <svg className={`w-3 h-3 text-white transition-opacity ${forceRefresh ? 'opacity-100' : 'opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </span>
+              Re-analyze (ignore cache)
+            </label>
+        </div>
     </form>
   )
 }
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-};
 
 const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisReport) => void}> = ({ report, onView }) => {
     const displayName = getDisplayName(report);
@@ -167,7 +185,7 @@ const ReportCard: React.FC<{report: AnalysisReport; onView: (report: AnalysisRep
                       {displayName}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">{formatDate(report.created_at)}</p>
-                    <span className="mt-3 inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-semibold">
+                    <span className="mt-3 inline-block px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-semibold">
                       {report.review_type}
                     </span>
                 </div>
@@ -195,7 +213,21 @@ const HistoryEmptyState: React.FC = () => (
 );
 
 
-const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }) => {
+const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, onNavigateToHistory }) => {
+  const [fallbackInfo, setFallbackInfo] = useState<{ url: string; reviewType: ReviewType } | null>(null);
+
+  const handleScreenshotFail = (url: string, reviewType: ReviewType) => {
+    setFallbackInfo({ url, reviewType });
+  };
+  
+  const handleFallbackSubmit = (manualImage: { data: string; mimeType: string; name: string }) => {
+    if (fallbackInfo) {
+      onSubmit(manualImage, fallbackInfo.reviewType, fallbackInfo.url, 'URL', true);
+      setFallbackInfo(null);
+    }
+  };
+  
+  const recentReports = reports.slice(0, 3);
 
   return (
     <>
@@ -208,26 +240,39 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }
           <p className="mt-6 text-md sm:text-lg lg:text-xl text-gray-600 max-w-2xl mx-auto">
             Upload a screenshot or paste a URL to have your design analyzed by our expert AI in seconds. Stop guessing, start improving.
           </p>
-          <AnalysisForm onSubmit={onSubmit} />
+          <AnalysisForm onSubmit={onSubmit} onScreenshotFail={handleScreenshotFail} />
         </div>
       </div>
       
-      {/* Reports History Section */}
+      {/* Recent History Section */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
-         <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-bold text-text-primary">Analyze History</h3>
-         </div>
-         
          {reports.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {reports.map(report => (
-                    <ReportCard key={report.id} report={report} onView={onViewReport} />
-                ))}
-            </div>
+             <>
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-2xl font-bold text-text-primary">Recent History</h3>
+                    <button onClick={onNavigateToHistory} className="text-sm font-semibold text-primary hover:underline">
+                        View all
+                    </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {recentReports.map(report => (
+                        <ReportCard key={report.id} report={report} onView={onViewReport} />
+                    ))}
+                </div>
+             </>
          ) : (
             <HistoryEmptyState />
          )}
       </div>
+      
+      {fallbackInfo && (
+        <ScreenshotFallbackModal
+          isOpen={!!fallbackInfo}
+          onClose={() => setFallbackInfo(null)}
+          onSubmit={handleFallbackSubmit}
+          url={fallbackInfo.url}
+        />
+      )}
     </>
   );
 };

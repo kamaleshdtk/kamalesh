@@ -9,17 +9,9 @@ const issueSchema = {
         issueDescription: { type: Type.STRING },
         recommendation: { type: Type.STRING },
         severity: { type: Type.STRING, description: "Can be 'Critical', 'Major', or 'Minor'" },
+        relevantLaw: { type: Type.STRING, description: "e.g., Hick's Law, Fitts's Law. Include if a UX law is directly relevant to the issue." },
     },
     required: ["issueTitle", "issueDescription", "recommendation", "severity"],
-};
-
-const uxIssueSchema = {
-    ...issueSchema,
-    properties: {
-        ...issueSchema.properties,
-        relevantLaw: { type: Type.STRING, description: "e.g., Hick's Law, Fitts's Law" },
-    },
-    // relevantLaw is not always required, so keeping the base required fields.
 };
 
 const categoryAnalysisSchema = (issueTypeSchema: any) => ({
@@ -50,7 +42,7 @@ const responseSchema = {
     uxCategoryAnalyses: {
       type: Type.ARRAY,
       description: "A detailed breakdown of the UX analysis by category.",
-      items: categoryAnalysisSchema(uxIssueSchema),
+      items: categoryAnalysisSchema(issueSchema), // Simplified to use the same enhanced schema
     },
   },
   required: ["uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
@@ -73,7 +65,7 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
         - A detailed \`issueDescription\`.
         - A concrete, actionable \`recommendation\`.
         - A \`severity\` level ('Critical', 'Major', 'Minor').
-        - For UX issues, if applicable, also provide the \`relevantLaw\` (e.g., "Hick's Law").
+        - If applicable, also provide the \`relevantLaw\` (e.g., "Hick's Law").
     4.  **Overall Score:** Calculate the final overall \`uiScore\` and \`uxScore\` by taking the mathematical AVERAGE of all their respective category scores. For example, if there are 8 UI categories, the \`uiScore\` is the sum of the 8 category scores divided by 8. Round the final score to the nearest whole number.
     5.  **Summary:** Start the entire report with a brief, two-sentence \`overallSummary\` of the key findings.
     6.  **Empty Categories:** If a category has no issues, give it a score of 100 and an empty \`issues\` array.
@@ -83,6 +75,8 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
   const uiFocus = `
     ## UI (User Interface) Analysis Checklist (Visual + Presentation Layer)
     
+    **Contextual UX Laws:** When identifying UI issues, if a specific UX law (like Fitts's Law, Hick's Law, Jakob's Law, etc.) is directly applicable to the problem, you MUST reference it in the \`relevantLaw\` field for that issue. This provides deeper context for the visual problem.
+
     ### 1. Layout & Structure
     - **Alignment & Spacing:** Check for consistent alignment, spacing, and grid use.
     - **Visual Hierarchy:** Ensure important elements stand out.

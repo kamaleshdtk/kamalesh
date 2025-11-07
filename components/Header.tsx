@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface HeaderProps {
   user: {
@@ -9,6 +9,7 @@ interface HeaderProps {
   onLogout: () => void;
   onNavigateHome: () => void;
   onNavigateToNewReview: () => void;
+  onNavigateToHistory: () => void;
 }
 
 const Logo: React.FC<{ onClick: () => void }> = ({ onClick }) => (
@@ -22,8 +23,21 @@ const Logo: React.FC<{ onClick: () => void }> = ({ onClick }) => (
 );
 
 
-const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavigateToNewReview }) => {
+const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavigateToNewReview, onNavigateToHistory }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userMenuRef]);
+
 
   const navLinkClasses = "px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors";
   
@@ -37,7 +51,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
             <nav className="hidden md:flex items-center gap-4">
               <button disabled className={`${navLinkClasses} opacity-50 cursor-not-allowed`}>Products</button>
               <button disabled className={`${navLinkClasses} opacity-50 cursor-not-allowed`}>Pricing</button>
-              <button onClick={onNavigateHome} className={navLinkClasses}>History</button>
+              <button onClick={onNavigateToHistory} className={navLinkClasses}>History</button>
             </nav>
           </div>
 
@@ -50,11 +64,28 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
                 >
                   + New Review
               </button>
-               <div className="flex items-center gap-2 cursor-pointer group">
-                <img src={user.avatar} alt="User Avatar" className="w-8 h-8 rounded-full" />
-                 <svg className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                 </svg>
+               <div className="relative" ref={userMenuRef}>
+                <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center gap-2 group">
+                    <img src={user.avatar} alt="User Avatar" className="w-8 h-8 rounded-full" />
+                    <svg className={`w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                </button>
+                <div 
+                  className={`absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-200/80 origin-top-right transition-all duration-200 ease-out
+                  ${isUserMenuOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-1 pointer-events-none'}`}
+                >
+                    <div className="px-4 py-2 text-sm text-gray-700 font-semibold border-b">{user.name}</div>
+                    <button 
+                      onClick={() => {
+                        onLogout();
+                        setIsUserMenuOpen(false);
+                      }} 
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    >
+                        Logout
+                    </button>
+                </div>
                </div>
             </div>
             <div className="md:hidden flex items-center">
@@ -82,35 +113,33 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
       </div>
 
       {/* Mobile Menu Panel */}
-      {isMenuOpen && (
-        <div className="md:hidden" id="mobile-menu">
-          <nav className="px-2 pt-2 pb-4 space-y-1">
-             <button disabled className={`${navLinkClasses} block w-full text-left opacity-50 cursor-not-allowed`}>Products</button>
-             <button disabled className={`${navLinkClasses} block w-full text-left opacity-50 cursor-not-allowed`}>Pricing</button>
-             <button onClick={() => { onNavigateHome(); setIsMenuOpen(false); }} className={`${navLinkClasses} block w-full text-left`}>History</button>
-             <div className="px-2 pt-4">
-                <button
-                  onClick={() => { onNavigateToNewReview(); setIsMenuOpen(false); }}
-                  className="w-full bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-primary-light transition-colors"
-                >
-                  + New Review
+      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${isMenuOpen ? 'max-h-96' : 'max-h-0'}`} id="mobile-menu">
+        <nav className="px-2 pt-2 pb-4 space-y-1">
+           <button disabled className={`${navLinkClasses} block w-full text-left opacity-50 cursor-not-allowed`}>Products</button>
+           <button disabled className={`${navLinkClasses} block w-full text-left opacity-50 cursor-not-allowed`}>Pricing</button>
+           <button onClick={() => { onNavigateToHistory(); setIsMenuOpen(false); }} className={`${navLinkClasses} block w-full text-left`}>History</button>
+           <div className="px-2 pt-4">
+              <button
+                onClick={() => { onNavigateToNewReview(); setIsMenuOpen(false); }}
+                className="w-full bg-primary text-white text-sm font-semibold px-4 py-2.5 rounded-lg hover:bg-primary-light transition-colors"
+              >
+                + New Review
+            </button>
+           </div>
+          <div className="pt-2 mt-2 border-t border-gray-200">
+              <div className="flex items-center px-4 py-2">
+                  <img className="h-9 w-9 rounded-full" src={user.avatar} alt="User Avatar" />
+                  <span className="ml-3 font-medium text-text-primary">{user.name}</span>
+              </div>
+              <button
+                  onClick={() => { onLogout(); setIsMenuOpen(false); }}
+                  className={`w-full text-left ${navLinkClasses} block`}
+              >
+                  Logout
               </button>
-             </div>
-            <div className="pt-2 mt-2 border-t border-gray-200">
-                <div className="flex items-center px-4 py-2">
-                    <img className="h-9 w-9 rounded-full" src={user.avatar} alt="User Avatar" />
-                    <span className="ml-3 font-medium text-text-primary">{user.name}</span>
-                </div>
-                <button
-                    onClick={() => { onLogout(); setIsMenuOpen(false); }}
-                    className={`w-full text-left ${navLinkClasses} block`}
-                >
-                    Logout
-                </button>
-            </div>
-          </nav>
-        </div>
-      )}
+          </div>
+        </nav>
+      </div>
     </header>
   );
 };

@@ -7,7 +7,9 @@ import AuthPage from './components/pages/AuthPage';
 import Dashboard from './components/pages/Dashboard';
 import LoadingScreen from './components/pages/LoadingScreen';
 import ReportPage from './components/pages/ReportPage';
+import HistoryPage from './components/pages/HistoryPage';
 import { ToastProvider, useToast } from './contexts/ToastContext';
+import { simpleHash } from './utils';
 
 // Mock user data
 const user = {
@@ -17,7 +19,7 @@ const user = {
 
 const AppContent: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report'>('auth');
+  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report' | 'history'>('auth');
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const { addToast } = useToast();
@@ -54,13 +56,34 @@ const AppContent: React.FC = () => {
 
   const navigateToHome = () => setCurrentPage('home');
   const navigateToNewReview = () => setCurrentPage('home');
+  const navigateToHistory = () => setCurrentPage('history');
 
   const handleSubmit = useCallback(async (
     image: { data: string; mimeType: string },
     reviewType: ReviewType,
     inputValue: string,
-    inputType: 'URL' | 'Image'
+    inputType: 'URL' | 'Image',
+    forceRefresh: boolean
   ) => {
+
+    const cacheKey = `report-cache-${reviewType}-${simpleHash(image.data)}`;
+
+    if (!forceRefresh) {
+        try {
+            const cachedReportJSON = localStorage.getItem(cacheKey);
+            if (cachedReportJSON) {
+                const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
+                setSelectedReport(cachedReport);
+                setCurrentPage('report');
+                addToast('Loaded report from cache.', 'success');
+                return;
+            }
+        } catch (e) {
+            console.error("Failed to read from cache", e);
+        }
+    }
+
+
     setCurrentPage('loading');
     try {
       const result = await analyzeDesign(image, reviewType);
@@ -76,6 +99,14 @@ const AppContent: React.FC = () => {
         screenshot_url: image.data,
         review_type: reviewType,
       };
+
+      // Save to cache
+      try {
+          localStorage.setItem(cacheKey, JSON.stringify(newReport));
+      } catch(e) {
+          console.error("Failed to save report to cache", e);
+      }
+
       setReports(prev => [newReport, ...prev]);
       setSelectedReport(newReport);
       setCurrentPage('report');
@@ -99,11 +130,13 @@ const AppContent: React.FC = () => {
     
     switch (currentPage) {
       case 'home':
-        return <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} />;
+        return <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} onNavigateToHistory={navigateToHistory} />;
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} onNavigateToHistory={navigateToHistory} />;
+      case 'history':
+        return <HistoryPage reports={reports} onViewReport={handleViewReport} onBack={navigateToHome} />;
       default:
         return <AuthPage onLogin={handleLogin} />;
     }
@@ -111,7 +144,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="font-sans text-text-primary min-h-screen">
-      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToNewReview={navigateToNewReview} />}
+      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToNewReview={navigateToNewReview} onNavigateToHistory={navigateToHistory} />}
       <main className="pt-28 sm:pt-32">
           {renderContent()}
       </main>
