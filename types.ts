@@ -1,4 +1,5 @@
 
+
 export enum ReviewType {
   UI = 'UI Review',
   UX = 'UX Review',
@@ -19,6 +20,8 @@ export interface CategoryAnalysis {
 }
 
 export interface AnalysisResult {
+  isCaptcha: boolean;
+  isAccessDenied: boolean;
   uiScore: number; // Overall average score
   uxScore: number; // Overall average score
   overallSummary: string;

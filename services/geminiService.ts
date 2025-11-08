@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, ReviewType } from '../types';
 
@@ -31,6 +30,8 @@ const categoryAnalysisSchema = (issueTypeSchema: any) => ({
 const responseSchema = {
   type: Type.OBJECT,
   properties: {
+    isCaptcha: { type: Type.BOOLEAN, description: "True if the image is a CAPTCHA/bot check, otherwise false." },
+    isAccessDenied: { type: Type.BOOLEAN, description: "True if the image is an access denied/permission error page, otherwise false." },
     uiScore: { type: Type.NUMBER, description: "Overall UI score from 0 to 100, calculated as the average of all UI category scores." },
     uxScore: { type: Type.NUMBER, description: "Overall UX score from 0 to 100, calculated as the average of all UX category scores." },
     overallSummary: { type: Type.STRING, description: "A brief, two-sentence summary of the key findings." },
@@ -45,13 +46,57 @@ const responseSchema = {
       items: categoryAnalysisSchema(issueSchema), // Simplified to use the same enhanced schema
     },
   },
-  required: ["uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
+  required: ["isCaptcha", "isAccessDenied", "uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
 };
 
 
 const getReviewPrompt = (reviewType: ReviewType): string => {
   const basePrompt = `
-    You are UXRay, a world-class AI assistant specializing in UI & UX design analysis.
+    You are UXRay, an expert UI/UX analysis AI. Your primary goal is to provide a detailed design audit. Before you begin, you must perform two critical safety checks in order.
+
+    **Step 1: CAPTCHA Verification**
+
+    This is your most important step. A mistake here is a critical failure. Your task is to determine if the provided image is *only* a security check designed to block bots.
+
+    - **Definition of a CAPTCHA (Set \`isCaptcha: true\`):**
+        - **Image Puzzles:** A grid of images asking to "select all squares with cars".
+        - **Distorted Text:** Warped or obscured text/numbers that a user must type.
+        - **Security Checkboxes:** A checkbox from services like reCAPTCHA, hCaptcha, or Cloudflare explicitly stating "I'm not a robot" or "Verify you are human".
+        - **Interactive Puzzles:** "Slide to verify" or similar puzzles.
+
+    - **Definition of NOT a CAPTCHA (Set \`isCaptcha: false\`):**
+        - **User Authentication:** Login forms, sign-up pages, password fields.
+        - **Consent & Banners:** Cookie consent pop-ups, privacy notices (GDPR/CCPA).
+        - **ANYTHING ELSE:** If it's a normal part of a website's user interface, it is NOT a CAPTCHA.
+    
+    - **Your Action for Step 1:**
+        - If the image matches the CAPTCHA definition, set \`isCaptcha: true\` and STOP. Provide empty/default values for all other fields.
+        - If not, set \`isCaptcha: false\` and proceed to Step 2.
+        - **You will be heavily penalized for misclassifying a normal webpage (like a login screen) as a CAPTCHA.**
+
+    **Step 2: Access Denied Verification**
+
+    After confirming the image is not a CAPTCHA, check if it's a generic SERVER-LEVEL error page that indicates the screenshot service itself was blocked.
+
+    - **Definition of an Access Denied Page (Set \`isAccessDenied: true\`):**
+        - **Plain, unstyled pages** from a server or CDN (like Cloudflare, Akamai, AWS).
+        - **Explicit error codes:** "Access Denied", "Forbidden", "403 Error", "You don't have permission to access this server".
+        - The key indicator is that the page lacks any of the website's normal branding, navigation, or styling. It looks like a raw error message.
+
+    - **Definition of NOT an Access Denied Page (Set \`isAccessDenied: false\`):**
+        - **Styled 404 Pages:** A website's custom "Page Not Found" page.
+        - **Login Walls:** Pages that say "Please log in to view this content."
+        - **Paywalls:** Pages asking the user to subscribe to see the article.
+        - **In-app Permission Messages:** A message within the website's normal layout that says "Your plan doesn't include this feature."
+        - Any page that contains the website's regular header, footer, or branding is NOT a server-level access denied page.
+
+    - **Your Action for Step 2:**
+        - If the image matches the strict Access Denied definition, set \`isAccessDenied: true\` and STOP. Provide empty/default values for all other fields.
+        - If not, set \`isAccessDenied: false\` and proceed to the final step.
+
+    **Step 3: Full Design Analysis**
+    
+    If, and only if, you have determined the image is NOT a CAPTCHA and NOT an Access Denied page, proceed with the following instructions.
     Your task is to conduct a strict, professional audit of the provided screenshot. Do not provide general tips or nice suggestions. Be critical and objective, identifying concrete violations of established design principles based on the checklists below.
     Your tone must be that of an expert auditor: direct, precise, and authoritative.
 
@@ -215,6 +260,13 @@ export const analyzeDesign = async (
     const jsonString = response.text.trim();
     const result: AnalysisResult = JSON.parse(jsonString);
     
+    if (result.isCaptcha) {
+        throw new Error("This website uses a security check (CAPTCHA) that blocked the analysis. Please take a screenshot manually and upload it.");
+    }
+    if (result.isAccessDenied) {
+        throw new Error("This website returned an 'Access Denied' error, which blocked the analysis. Please take a screenshot manually and upload it.");
+    }
+    
     // Ensure scores are within bounds
     result.uiScore = Math.max(0, Math.min(100, Math.round(result.uiScore)));
     result.uxScore = Math.max(0, Math.min(100, Math.round(result.uxScore)));
@@ -223,6 +275,9 @@ export const analyzeDesign = async (
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
+    if (error instanceof Error && (error.message.includes('CAPTCHA') || error.message.includes('Access Denied'))) {
+      throw error;
+    }
     throw new Error("Failed to get analysis from AI. The response might be malformed or the API call failed.");
   }
 };

@@ -193,8 +193,8 @@ const AppContent: React.FC = () => {
       addToast('Analysis complete! Report successfully generated.', 'success');
     } catch (err: any) {
       console.error(err);
-      addToast(err.message || 'An unknown error occurred during analysis.', 'error');
       setCurrentPage('home');
+      throw err; // Re-throw the error for the caller to handle UI specifics
     }
   }, [addToast, reports]);
 

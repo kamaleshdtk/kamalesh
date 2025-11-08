@@ -27,6 +27,26 @@ export const fileToDataUrl = (file: File): Promise<{ data: string; mimeType: str
   });
 };
 
+// Helper function for retrying with exponential backoff
+const fetchWithRetry = async (url: string, retries = 10, delay = 3000): Promise<Response> => {
+    try {
+        const response = await fetch(url);
+        if (response.status === 429 && retries > 0) {
+            console.warn(`Screenshot service busy (429). Retrying in ${delay}ms... (${retries} retries left)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, retries - 1, delay * 2);
+        }
+        return response;
+    } catch (error) {
+        if (retries > 0) {
+            console.warn(`Fetch failed. Retrying in ${delay}ms... (${retries} retries left)`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return fetchWithRetry(url, retries - 1, delay * 2);
+        }
+        throw error;
+    }
+};
+
 export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeType: string }> => {
   try {
     // Validate and format URL
@@ -36,24 +56,20 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
     }
     new URL(fullUrl); // This will throw an error for invalid URLs
 
-    // FIX: Explicitly request PNG format to avoid receiving unsupported GIFs from the service.
-    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&f=png`;
+    const screenshotApiUrl = `https://image.thum.io/get/width/1280/crop/720/noanimate/${encodeURIComponent(fullUrl)}`;
 
-    const response = await fetch(screenshotApiUrl);
+    const response = await fetchWithRetry(screenshotApiUrl);
     
     if (!response.ok) {
+      if (response.status === 429) {
+          throw new Error('The screenshot service is busy due to high traffic. Please try again in a moment.');
+      }
       throw new Error(`Failed to fetch screenshot. The service may be temporarily unavailable or the URL is invalid. (Status: ${response.status})`);
     }
     
     const imageBlob = await response.blob();
     const mimeType = imageBlob.type;
 
-    // The Gemini API does not support GIFs which this service sometimes returns.
-    // We block GIFs on the client side to prevent an API error.
-    if (mimeType === 'image/gif') {
-        throw new Error('The screenshot service returned an unsupported image format (GIF). Please try a different URL or upload an image.');
-    }
-    
     // Convert the image blob to a base64 data URL
     const reader = new FileReader();
     return new Promise((resolve, reject) => {
@@ -72,7 +88,7 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
 
   } catch (error) {
     console.error("Error capturing website screenshot:", error);
-    if (error instanceof Error && (error.message.includes('Status:') || error.message.includes('GIF'))) {
+    if (error instanceof Error && (error.message.includes('Status:') || error.message.includes('high traffic'))) {
         throw error;
     }
     throw new Error("Could not capture a screenshot. The URL may be invalid, private, or the service may be unavailable.");

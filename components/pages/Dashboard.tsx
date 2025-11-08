@@ -15,7 +15,7 @@ interface DashboardProps {
     inputValue: string,
     inputType: 'URL' | 'Image',
     forceRefresh: boolean
-  ) => void;
+  ) => Promise<void>;
   reports: AnalysisReport[];
   onViewReport: (report: AnalysisReport) => void;
   onNavigateToHistory: () => void;
@@ -36,8 +36,8 @@ const AnalysisForm: React.FC<{
   const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if(file.size > 4 * 1024 * 1024) { // 4MB limit
-        addToast("File size exceeds 4MB. Please upload a smaller image.", 'error');
+      if(file.size > 15 * 1024 * 1024) { // 15MB limit
+        addToast("File size exceeds 15MB. Please upload a smaller image.", 'error');
         return;
       }
       const imageData = await fileToDataUrl(file);
@@ -62,18 +62,20 @@ const AnalysisForm: React.FC<{
 
     try {
       if (image) {
-        onSubmit(image, reviewType, image.name, 'Image', forceRefresh);
+        await onSubmit(image, reviewType, image.name, 'Image', forceRefresh);
       } else if (url) {
         const screenshot = await urlToDataUrl(url);
-        onSubmit(screenshot, reviewType, url, 'URL', forceRefresh);
+        await onSubmit(screenshot, reviewType, url, 'URL', forceRefresh);
       }
     } catch (err: any) {
-      if (url) {
+      const errorMessage = err.message || 'An unknown error occurred.';
+      addToast(errorMessage, 'error');
+
+      if (url) { // If the failure was for a URL (screenshot or CAPTCHA)
         onScreenshotFail(url, reviewType);
-      } else {
-        addToast(err.message || 'An unknown error occurred.', 'error');
       }
-      setIsSubmitting(false);
+      
+      setIsSubmitting(false); // Reset form state on any error
     }
   };
   
@@ -169,9 +171,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onSubmit, reports, onViewReport, 
     setFallbackInfo({ url, reviewType });
   };
   
-  const handleFallbackSubmit = (manualImage: { data: string; mimeType: string; name: string }) => {
+  const handleFallbackSubmit = async (manualImage: { data: string; mimeType: string; name: string }) => {
     if (fallbackInfo) {
-      onSubmit(manualImage, fallbackInfo.reviewType, fallbackInfo.url, 'URL', true);
+      // Re-submit using the main onSubmit handler, which will show its own loading/error states.
+      await onSubmit(manualImage, fallbackInfo.reviewType, fallbackInfo.url, 'URL', true);
       setFallbackInfo(null);
     }
   };

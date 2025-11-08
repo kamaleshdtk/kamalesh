@@ -18,8 +18,8 @@ const ScreenshotFallbackModal: React.FC<ScreenshotFallbackModalProps> = ({ isOpe
   const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 4 * 1024 * 1024) { // 4MB limit
-        addToast("File size exceeds 4MB. Please upload a smaller image.", 'error');
+      if (file.size > 15 * 1024 * 1024) { // 15MB limit
+        addToast("File size exceeds 15MB. Please upload a smaller image.", 'error');
         return;
       }
       try {
@@ -59,6 +59,7 @@ const ScreenshotFallbackModal: React.FC<ScreenshotFallbackModalProps> = ({ isOpe
           <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/png, image/jpeg, image/webp" />
           <button
             type="button"
+            // FIX: Corrected variable name from `fileInput` to `fileInputRef` to match the defined ref.
             onClick={() => fileInputRef.current?.click()}
             className="w-full text-center px-4 py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-primary dark:hover:border-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
@@ -70,7 +71,7 @@ const ScreenshotFallbackModal: React.FC<ScreenshotFallbackModalProps> = ({ isOpe
             ) : (
                 <div className="text-gray-500 dark:text-gray-400">
                     <p className="font-semibold">Click to upload a screenshot</p>
-                    <p className="text-sm mt-1">PNG, JPG, WEBP (Max 4MB)</p>
+                    <p className="text-sm mt-1">PNG, JPG, WEBP (Max 15MB)</p>
                 </div>
             )}
           </button>
