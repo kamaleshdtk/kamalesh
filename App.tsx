@@ -139,19 +139,68 @@ const AppContent: React.FC = () => {
     setCurrentPage('report');
   };
   
+  // Core analysis logic, extracted for reusability
+  const runAnalysisAndDisplayReport = useCallback(async (
+    image: { data: string, mimeType: string },
+    reviewType: ReviewType,
+    inputType: 'URL' | 'Image',
+    inputValue: string,
+    ignoreCache: boolean
+  ) => {
+    const resizedImage = await resizeImage(image.data, image.mimeType);
+
+    const cacheKey = `report-cache-${reviewType}-${simpleHash(resizedImage.data)}`;
+    if (!ignoreCache) {
+      const cachedReportJSON = localStorage.getItem(cacheKey);
+      if (cachedReportJSON) {
+        const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
+        setSelectedReport(cachedReport);
+        setCurrentPage('report');
+        addToast('Loaded report from cache.', 'success');
+        if (!reports.some(r => r.id === cachedReport.id)) {
+          setReports(prev => [cachedReport, ...prev]);
+        }
+        return; // End here for cache hit
+      }
+    }
+
+    const result = await analyzeDesign(resizedImage, reviewType);
+
+    const newReport: AnalysisReport = {
+      id: new Date().toISOString(),
+      user_id: 'demo-user',
+      input_type: inputType,
+      input_value: inputValue,
+      ui_score: result.uiScore,
+      ux_score: result.uxScore,
+      result_json: result,
+      created_at: new Date().toISOString(),
+      screenshot_url: resizedImage.data,
+      review_type: reviewType,
+    };
+
+    localStorage.setItem(cacheKey, JSON.stringify(newReport));
+
+    setReports(prev => [newReport, ...prev]);
+    setSelectedReport(newReport);
+    setCurrentPage('report');
+    addToast('Analysis complete! Report successfully generated.', 'success');
+  }, [addToast, reports]);
+
+
   const handleSubmit = useCallback(async (
     submission: Submission,
     reviewType: ReviewType,
-    // Used to preserve original URL when a manual screenshot is uploaded after a failure
-    originalUrlForReport?: string
+    ignoreCache = false
   ) => {
     setCurrentPage('loading');
     setScreenshotFailureInfo(null);
-    let image: { data: string, mimeType: string, name?: string };
-    let inputType: 'URL' | 'Image';
-    let inputValue: string;
-
+    
     try {
+        let image: { data: string, mimeType: string, name?: string };
+        let inputType: 'URL' | 'Image';
+        let inputValue: string;
+
         if (submission.type === 'URL') {
             image = await urlToDataUrl(submission.value);
             inputType = 'URL';
@@ -162,42 +211,13 @@ const AppContent: React.FC = () => {
             inputValue = image.name || 'Uploaded Image';
         }
 
-        const resizedImage = await resizeImage(image.data, image.mimeType);
-
-        const cacheKey = `report-cache-${reviewType}-${simpleHash(resizedImage.data)}`;
-        const cachedReportJSON = localStorage.getItem(cacheKey);
-        if (cachedReportJSON) {
-            const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
-            setSelectedReport(cachedReport);
-            setCurrentPage('report');
-            addToast('Loaded report from cache.', 'success');
-            if (!reports.some(r => r.id === cachedReport.id)) {
-               setReports(prev => [cachedReport, ...prev]);
-            }
-            return;
-        }
-
-        const result = await analyzeDesign(resizedImage, reviewType);
-        
-        const newReport: AnalysisReport = {
-            id: new Date().toISOString(),
-            user_id: 'demo-user',
-            input_type: inputType,
-            input_value: originalUrlForReport || inputValue,
-            ui_score: result.uiScore,
-            ux_score: result.uxScore,
-            result_json: result,
-            created_at: new Date().toISOString(),
-            screenshot_url: resizedImage.data,
-            review_type: reviewType,
-        };
-
-        localStorage.setItem(cacheKey, JSON.stringify(newReport));
-        
-        setReports(prev => [newReport, ...prev]);
-        setSelectedReport(newReport);
-        setCurrentPage('report');
-        addToast('Analysis complete! Report successfully generated.', 'success');
+        await runAnalysisAndDisplayReport(
+            image,
+            reviewType,
+            inputType,
+            inputValue,
+            ignoreCache
+        );
 
     } catch (err: any) {
         console.error(err);
@@ -209,18 +229,44 @@ const AppContent: React.FC = () => {
             setScreenshotFailureInfo({ reason: errorMessage, url: submission.value, reviewType });
         }
     }
-  }, [addToast, reports]);
+  }, [addToast, runAnalysisAndDisplayReport]);
 
 
   const handleFallbackSubmit = (manualFile: File) => {
     if (screenshotFailureInfo) {
-      handleSubmit(
-        { type: 'Image', value: manualFile },
-        screenshotFailureInfo.reviewType,
-        screenshotFailureInfo.url // Pass original URL for report context
-      );
+      const { reviewType, url } = screenshotFailureInfo;
+      setCurrentPage('loading');
+      fileToDataUrl(manualFile).then(image => {
+        runAnalysisAndDisplayReport(image, reviewType, 'URL', url, true);
+      }).catch(err => {
+        addToast('Failed to process the uploaded file.', 'error');
+        setCurrentPage('home');
+      });
     }
   };
+  
+  const handleReanalyzeReport = useCallback(async (report: AnalysisReport) => {
+    setCurrentPage('loading');
+    try {
+        const mimeType = report.screenshot_url.substring(report.screenshot_url.indexOf(':') + 1, report.screenshot_url.indexOf(';'));
+        const image = { data: report.screenshot_url, mimeType: mimeType };
+        
+        await runAnalysisAndDisplayReport(
+            image,
+            report.review_type,
+            report.input_type,
+            report.input_value,
+            true // always ignore cache
+        );
+    } catch (err: any) {
+         console.error(err);
+         const errorMessage = err.message || 'An unknown error occurred during re-analysis.';
+         addToast(errorMessage, 'error');
+         // Go back to the original report on error
+         setSelectedReport(report); 
+         setCurrentPage('report');
+    }
+}, [runAnalysisAndDisplayReport, addToast]);
 
 
   const renderContent = () => {
@@ -239,7 +285,7 @@ const AppContent: React.FC = () => {
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard onSubmit={handleSubmit} reports={reports} onViewReport={handleViewReport} onNavigateToHistory={() => navigateToDashboard('reviews')} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} onReanalyze={handleReanalyzeReport} /> : <Dashboard onSubmit={handleSubmit} reports={reports} onViewReport={handleViewReport} onNavigateToHistory={() => navigateToDashboard('reviews')} />;
       case 'dashboard':
         return <ProfileDashboardPage 
                   user={user} 

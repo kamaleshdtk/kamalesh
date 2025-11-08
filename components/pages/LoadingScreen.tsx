@@ -1,84 +1,67 @@
 import React, { useState, useEffect } from 'react';
 
-// A larger list of engaging UI/UX tips
-const uxTips = [
-    "Hick's Law: The time it takes to make a decision increases with the number and complexity of choices.",
-    "Fitts's Law: The time to acquire a target is a function of the distance to and size of the target. Make buttons large enough!",
-    "Jakob's Law: Users spend most of their time on other sites. This means they prefer your site to work the same way as all the other sites they already know.",
-    "The Aesthetic-Usability Effect: Users often perceive aesthetically pleasing design as design that’s more usable.",
-    "Rule of Thirds: Placing important elements along the intersections of a 3x3 grid makes designs more visually appealing.",
-    "White space is not wasted space. It improves readability and reduces cognitive load.",
-    "Good contrast isn't just for accessibility; it helps all users focus on what's important.",
-    "Users read in an 'F' pattern on web pages. Place your most important content on the top and left.",
-    "Miller's Law: The average person can only keep about 7 (plus or minus 2) items in their working memory.",
-    "Occam's Razor: The simplest solution is almost always the best. Avoid unnecessary elements.",
-    "Don't make users think. Your design's purpose should be self-evident.",
+const analysisSteps = [
+    "Analyzing spacing and visual hierarchy...",
+    "Detecting contrast and accessibility issues...",
+    "Reviewing alignment precision...",
+    "Checking typography scale consistency...",
+    "Evaluating color usage and brand coherence...",
+    "Mapping UI to UX heuristics...",
+    "Prioritizing issues based on impact...",
+    "Generating actionable recommendations...",
+    "Preparing final structured report...",
 ];
 
 const LoadingScreen: React.FC = () => {
-  const [progress, setProgress] = useState(0);
-  const [tipIndex, setTipIndex] = useState(0);
+    const [currentStep, setCurrentStep] = useState(0);
 
-  // Animate progress from 0 to 99 over ~15 seconds to simulate a realistic process
-  useEffect(() => {
-    const totalDuration = 15000; // 15 seconds
-    const intervalTime = 150; // Update every 150ms
-    const increments = totalDuration / intervalTime;
-    const progressIncrement = 99 / increments;
+    useEffect(() => {
+        const stepInterval = setInterval(() => {
+            setCurrentStep(prev => (prev + 1) % analysisSteps.length);
+        }, 2000); // Change step every 2 seconds
 
-    const progressInterval = setInterval(() => {
-      setProgress(prevProgress => {
-        const newProgress = prevProgress + progressIncrement;
-        if (newProgress >= 99) {
-          clearInterval(progressInterval);
-          return 99;
-        }
-        return newProgress;
-      });
-    }, intervalTime);
+        return () => {
+            clearInterval(stepInterval);
+        };
+    }, []);
 
-    return () => clearInterval(progressInterval);
-  }, []);
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4 overflow-hidden transition-colors duration-500">
+            <h2 className="text-2xl font-bold text-text-primary dark:text-white mb-6">
+                🔍 Analyzing Your Design...
+            </h2>
 
-  // Cycle through UX tips every 4 seconds
-  useEffect(() => {
-      const tipInterval = setInterval(() => {
-          setTipIndex(prevIndex => (prevIndex + 1) % uxTips.length);
-      }, 4000); // Change tip every 4 seconds
+            {/* Neural Network Animation */}
+            <div className="relative w-64 h-64 flex items-center justify-center mb-6">
+                {/* Central AI Core */}
+                <div className="absolute w-24 h-24 bg-primary/20 rounded-full animate-pulse-glow"></div>
+                
+                {/* Orbiting Particles */}
+                <div className="absolute w-full h-full">
+                    <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-accent-teal rounded-full animate-orbit [animation-delay:-1s]"></div>
+                    <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-primary-light rounded-full animate-orbit [animation-delay:-3s] [animation-duration:8s]"></div>
+                    <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full animate-orbit-reverse [animation-delay:-2s]"></div>
+                     <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-accent-teal/70 rounded-full animate-orbit-reverse [animation-delay:-5s] [animation-duration:12s]"></div>
+                </div>
 
-      return () => clearInterval(tipInterval);
-  }, []);
+                {/* Static Rings for structure */}
+                <div className="absolute w-[80%] h-[80%] rounded-full border border-primary/10"></div>
+                <div className="absolute w-[100%] h-[100%] rounded-full border border-primary/5"></div>
+            </div>
 
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
-      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-6">Analyzing your design...</h2>
-      <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-sm">
-        Our AI is hard at work. This usually takes less than a minute.
-      </p>
-
-      <div className="w-full max-w-md mt-10">
-        <div className="flex justify-between items-center mb-2 text-sm font-medium">
-          <p className="text-gray-600 dark:text-gray-400">Status</p>
-          <p className="text-gray-600 dark:text-gray-400">{Math.round(progress)}%</p>
+            <div className="h-12 flex flex-col items-center justify-center w-full max-w-md">
+                <p key={currentStep} className="text-lg font-semibold text-gray-800 dark:text-gray-200 animate-fade-in">
+                    {analysisSteps[currentStep]}
+                </p>
+            </div>
+            
+            <div className="w-full max-w-md mt-8 text-center">
+                <p className="text-sm text-text-secondary dark:text-gray-400">
+                    This usually takes 6–12 seconds.
+                </p>
+            </div>
         </div>
-        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
-          <div 
-            className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-linear" 
-            style={{ width: `${progress}%` }}
-          ></div>
-        </div>
-      </div>
-      
-      <div className="w-full max-w-md mt-8 text-center p-4 bg-primary/5 dark:bg-primary/10 rounded-lg border border-primary/20">
-          <p className="text-sm font-semibold text-primary mb-1">UX Tip:</p>
-          <p className="text-text-secondary dark:text-gray-300 text-sm">
-              {uxTips[tipIndex]}
-          </p>
-      </div>
-
-    </div>
-  );
+    );
 };
 
 export default LoadingScreen;

@@ -151,7 +151,7 @@ const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onT
 };
 
 
-const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ report, onBack }) => {
+const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; onReanalyze: (report: AnalysisReport) => void; }> = ({ report, onBack, onReanalyze }) => {
   const { result_json: results, screenshot_url, review_type } = report;
   const { addToast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -357,25 +357,36 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 Back to Home
               </button>
-              <button 
-                onClick={handleExportPDF}
-                disabled={isExporting}
-                className="flex items-center gap-2 text-sm text-white bg-primary hover:bg-primary-light px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
-              >
-                {isExporting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Exporting...
-                    </>
-                ) : (
-                    <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                        Export Report
-                    </>
-                )}
-              </button>
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => onReanalyze(report)}
+                  className="flex items-center gap-2 text-sm text-primary dark:text-primary-light bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-lg font-semibold transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5m11 11v-5h-5m0 0a9 9 0 100-18 9 9 0 000 18z" />
+                  </svg>
+                  Re-analyze
+                </button>
+                <button 
+                  onClick={handleExportPDF}
+                  disabled={isExporting}
+                  className="flex items-center gap-2 text-sm text-white bg-primary hover:bg-primary-light px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
+                >
+                  {isExporting ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Exporting...
+                      </>
+                  ) : (
+                      <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Export Report
+                      </>
+                  )}
+                </button>
+              </div>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
