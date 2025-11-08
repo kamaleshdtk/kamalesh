@@ -2,20 +2,13 @@
 
 import React, { useState, useRef, useCallback, ChangeEvent } from 'react';
 import { AnalysisReport, ReviewType } from '../../types';
-import { fileToDataUrl, urlToDataUrl } from '../../utils';
 import { useToast } from '../../contexts/ToastContext';
-import ScreenshotFallbackModal from './ScreenshotFallbackModal';
 import ReportCard from '../shared/ReportCard';
 
+type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
 
 interface DashboardProps {
-  onSubmit: (
-    image: { data: string; mimeType: string },
-    reviewType: ReviewType,
-    inputValue: string,
-    inputType: 'URL' | 'Image',
-    forceRefresh: boolean
-  ) => Promise<void>;
+  onSubmit: (submission: Submission, reviewType: ReviewType) => void;
   reports: AnalysisReport[];
   onViewReport: (report: AnalysisReport) => void;
   onNavigateToHistory: () => void;
@@ -23,13 +16,11 @@ interface DashboardProps {
 
 const AnalysisForm: React.FC<{
     onSubmit: DashboardProps['onSubmit'];
-    onScreenshotFail: (url: string, reviewType: ReviewType) => void;
-}> = ({ onSubmit, onScreenshotFail }) => {
+}> = ({ onSubmit }) => {
   const [reviewType, setReviewType] = useState<ReviewType>(ReviewType.UI);
-  const [image, setImage] = useState<{ data: string; mimeType: string; name: string } | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageName, setImageName] = useState<string>('');
   const [url, setUrl] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [forceRefresh, setForceRefresh] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
@@ -40,42 +31,31 @@ const AnalysisForm: React.FC<{
         addToast("File size exceeds 15MB. Please upload a smaller image.", 'error');
         return;
       }
-      const imageData = await fileToDataUrl(file);
-      setImage(imageData);
+      setImageFile(file);
+      setImageName(file.name);
       setUrl('');
     }
   }, [addToast]);
 
   const handleUrlChange = (e: ChangeEvent<HTMLInputElement>) => {
     setUrl(e.target.value);
-    if(image) setImage(null);
+    if(imageFile) {
+        setImageFile(null);
+        setImageName('');
+    }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!image && !url) {
+    if (!imageFile && !url) {
       addToast('Please upload an image or enter a URL.', 'error');
       return;
     }
     
-    setIsSubmitting(true);
-
-    try {
-      if (image) {
-        await onSubmit(image, reviewType, image.name, 'Image', forceRefresh);
-      } else if (url) {
-        const screenshot = await urlToDataUrl(url);
-        await onSubmit(screenshot, reviewType, url, 'URL', forceRefresh);
-      }
-    } catch (err: any) {
-      const errorMessage = err.message || 'An unknown error occurred.';
-      addToast(errorMessage, 'error');
-
-      if (url) { // If the failure was for a URL (screenshot or CAPTCHA)
-        onScreenshotFail(url, reviewType);
-      }
-      
-      setIsSubmitting(false); // Reset form state on any error
+    if (imageFile) {
+        onSubmit({ type: 'Image', value: imageFile }, reviewType);
+    } else if (url) {
+        onSubmit({ type: 'URL', value: url }, reviewType);
     }
   };
   
@@ -84,14 +64,13 @@ const AnalysisForm: React.FC<{
       onSubmit={handleSubmit}
       className="max-w-3xl w-full mx-auto mt-12"
     >
-      <fieldset disabled={isSubmitting} className="transition-opacity duration-300 disabled:opacity-60">
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-form-soft dark:border dark:border-gray-700">
           <div className="relative">
             <input
               type="text"
-              value={image ? `File: ${image.name}` : url}
+              value={imageName ? `File: ${imageName}` : url}
               onChange={handleUrlChange}
-              readOnly={!!image}
+              readOnly={!!imageFile}
               placeholder="Enter a website URL ( e.g., https://example.com)"
               className="w-full text-base bg-transparent dark:text-white focus:outline-none placeholder-gray-500 dark:placeholder-gray-400 px-2 pt-2"
             />
@@ -128,57 +107,22 @@ const AnalysisForm: React.FC<{
                 </button>
                  <button
                     type="submit"
-                    disabled={!image && !url}
-                    className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                    disabled={!imageFile && !url}
+                    className="h-10 w-10 flex-shrink-0 flex items-center justify-center rounded-full bg-primary text-white hover:bg-primary-light disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                     aria-label="Start analysis"
                   >
-                    {isSubmitting ? (
-                      <div className="w-5 h-5 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
                       </svg>
-                    )}
                 </button>
               </div>
           </div>
         </div>
-         <div className="mt-4 flex justify-end">
-              <label className="flex items-center gap-2.5 text-sm text-gray-600 dark:text-gray-400 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={forceRefresh}
-                  onChange={(e) => setForceRefresh(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <span className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-gray-500 peer-checked:bg-primary peer-checked:border-primary flex items-center justify-center transition-colors">
-                   <svg className={`w-3 h-3 text-white transition-opacity ${forceRefresh ? 'opacity-100' : 'opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="4">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                </span>
-                Re-analyze (ignore cache)
-              </label>
-          </div>
-        </fieldset>
     </form>
   )
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onSubmit, reports, onViewReport, onNavigateToHistory }) => {
-  const [fallbackInfo, setFallbackInfo] = useState<{ url: string; reviewType: ReviewType } | null>(null);
-
-  const handleScreenshotFail = (url: string, reviewType: ReviewType) => {
-    setFallbackInfo({ url, reviewType });
-  };
-  
-  const handleFallbackSubmit = async (manualImage: { data: string; mimeType: string; name: string }) => {
-    if (fallbackInfo) {
-      // Re-submit using the main onSubmit handler, which will show its own loading/error states.
-      await onSubmit(manualImage, fallbackInfo.reviewType, fallbackInfo.url, 'URL', true);
-      setFallbackInfo(null);
-    }
-  };
-  
   const recentReports = reports.slice(0, 3);
 
   return (
@@ -192,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSubmit, reports, onViewReport, 
           <p className="mt-6 text-md sm:text-lg lg:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Upload a screenshot or paste a URL to have your design analyzed by our expert AI in seconds. Stop guessing, start improving.
           </p>
-          <AnalysisForm onSubmit={onSubmit} onScreenshotFail={handleScreenshotFail} />
+          <AnalysisForm onSubmit={onSubmit} />
         </div>
       </div>
       
@@ -226,15 +170,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onSubmit, reports, onViewReport, 
             </div>
         )}
       </div>
-
-      {fallbackInfo && (
-        <ScreenshotFallbackModal
-          isOpen={!!fallbackInfo}
-          onClose={() => setFallbackInfo(null)}
-          onSubmit={handleFallbackSubmit}
-          url={fallbackInfo.url}
-        />
-      )}
     </>
   );
 };

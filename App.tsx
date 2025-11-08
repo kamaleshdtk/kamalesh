@@ -9,8 +9,9 @@ import ReportPage from './components/pages/ReportPage';
 import ProfileDashboardPage from './components/pages/SettingsPage';
 import PricingPage from './components/pages/PricingPage';
 import Footer from './components/Footer';
+import ScreenshotFallbackModal from './components/pages/ScreenshotFallbackModal';
 import { ToastProvider, useToast } from './contexts/ToastContext';
-import { simpleHash } from './utils';
+import { simpleHash, urlToDataUrl, fileToDataUrl, resizeImage } from './utils';
 
 // --- App-level State Types ---
 export interface UserProfile {
@@ -40,6 +41,7 @@ const userPlan = {
 
 export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'review-settings' | 'notifications' | 'security' | 'help';
 export type Theme = 'light' | 'dark' | 'system';
+type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
 
 const AppContent: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -48,6 +50,8 @@ const AppContent: React.FC = () => {
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const { addToast } = useToast();
+
+  const [screenshotFailureInfo, setScreenshotFailureInfo] = useState<{ reason: string; url: string; reviewType: ReviewType } | null>(null);
   
   // --- State for User and Settings ---
   const [user, setUser] = useState<UserProfile>({
@@ -134,69 +138,90 @@ const AppContent: React.FC = () => {
     setSelectedReport(report);
     setCurrentPage('report');
   };
-
+  
   const handleSubmit = useCallback(async (
-    image: { data: string; mimeType: string },
+    submission: Submission,
     reviewType: ReviewType,
-    inputValue: string,
-    inputType: 'URL' | 'Image',
-    forceRefresh: boolean
+    // Used to preserve original URL when a manual screenshot is uploaded after a failure
+    originalUrlForReport?: string
   ) => {
+    setCurrentPage('loading');
+    setScreenshotFailureInfo(null);
+    let image: { data: string, mimeType: string, name?: string };
+    let inputType: 'URL' | 'Image';
+    let inputValue: string;
 
-    const cacheKey = `report-cache-${reviewType}-${simpleHash(image.data)}`;
+    try {
+        if (submission.type === 'URL') {
+            image = await urlToDataUrl(submission.value);
+            inputType = 'URL';
+            inputValue = submission.value;
+        } else {
+            image = await fileToDataUrl(submission.value);
+            inputType = 'Image';
+            inputValue = image.name || 'Uploaded Image';
+        }
 
-    if (!forceRefresh) {
-        try {
-            const cachedReportJSON = localStorage.getItem(cacheKey);
-            if (cachedReportJSON) {
-                const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
-                setSelectedReport(cachedReport);
-                setCurrentPage('report');
-                addToast('Loaded report from cache.', 'success');
-                // Check if this report is already in our state
-                if (!reports.some(r => r.id === cachedReport.id)) {
-                   setReports(prev => [cachedReport, ...prev]);
-                }
-                return;
+        const resizedImage = await resizeImage(image.data, image.mimeType);
+
+        const cacheKey = `report-cache-${reviewType}-${simpleHash(resizedImage.data)}`;
+        const cachedReportJSON = localStorage.getItem(cacheKey);
+        if (cachedReportJSON) {
+            const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
+            setSelectedReport(cachedReport);
+            setCurrentPage('report');
+            addToast('Loaded report from cache.', 'success');
+            if (!reports.some(r => r.id === cachedReport.id)) {
+               setReports(prev => [cachedReport, ...prev]);
             }
-        } catch (e) {
-            console.error("Failed to read from cache", e);
+            return;
+        }
+
+        const result = await analyzeDesign(resizedImage, reviewType);
+        
+        const newReport: AnalysisReport = {
+            id: new Date().toISOString(),
+            user_id: 'demo-user',
+            input_type: inputType,
+            input_value: originalUrlForReport || inputValue,
+            ui_score: result.uiScore,
+            ux_score: result.uxScore,
+            result_json: result,
+            created_at: new Date().toISOString(),
+            screenshot_url: resizedImage.data,
+            review_type: reviewType,
+        };
+
+        localStorage.setItem(cacheKey, JSON.stringify(newReport));
+        
+        setReports(prev => [newReport, ...prev]);
+        setSelectedReport(newReport);
+        setCurrentPage('report');
+        addToast('Analysis complete! Report successfully generated.', 'success');
+
+    } catch (err: any) {
+        console.error(err);
+        const errorMessage = err.message || 'An unknown error occurred.';
+        addToast(errorMessage, 'error');
+        setCurrentPage('home');
+
+        if (submission.type === 'URL') {
+            setScreenshotFailureInfo({ reason: errorMessage, url: submission.value, reviewType });
         }
     }
-
-    setCurrentPage('loading');
-    try {
-      const result = await analyzeDesign(image, reviewType);
-      const newReport: AnalysisReport = {
-        id: new Date().toISOString(),
-        user_id: 'demo-user',
-        input_type: inputType,
-        input_value: inputValue,
-        ui_score: result.uiScore,
-        ux_score: result.uxScore,
-        result_json: result,
-        created_at: new Date().toISOString(),
-        screenshot_url: image.data,
-        review_type: reviewType,
-      };
-
-      // Save to cache
-      try {
-          localStorage.setItem(cacheKey, JSON.stringify(newReport));
-      } catch(e) {
-          console.error("Failed to save report to cache", e);
-      }
-      
-      setReports(prev => [newReport, ...prev]);
-      setSelectedReport(newReport);
-      setCurrentPage('report');
-      addToast('Analysis complete! Report successfully generated.', 'success');
-    } catch (err: any) {
-      console.error(err);
-      setCurrentPage('home');
-      throw err; // Re-throw the error for the caller to handle UI specifics
-    }
   }, [addToast, reports]);
+
+
+  const handleFallbackSubmit = (manualFile: File) => {
+    if (screenshotFailureInfo) {
+      handleSubmit(
+        { type: 'Image', value: manualFile },
+        screenshotFailureInfo.reviewType,
+        screenshotFailureInfo.url // Pass original URL for report context
+      );
+    }
+  };
+
 
   const renderContent = () => {
     if (currentPage === 'auth' && !isLoggedIn) {
@@ -223,7 +248,6 @@ const AppContent: React.FC = () => {
                   onUpdateReviewSettings={handleUpdateReviewSettings}
                   notificationSettings={notificationSettings}
                   onUpdateNotificationSettings={handleUpdateNotificationSettings}
-                  onBack={navigateToHome} 
                   onLogout={handleLogout} 
                   initialTab={initialDashboardTab}
                   reports={reports}
@@ -245,6 +269,15 @@ const AppContent: React.FC = () => {
           {renderContent()}
       </main>
       {isLoggedIn && <Footer />}
+      {screenshotFailureInfo && (
+        <ScreenshotFallbackModal
+          isOpen={!!screenshotFailureInfo}
+          onClose={() => setScreenshotFailureInfo(null)}
+          onSubmit={handleFallbackSubmit}
+          url={screenshotFailureInfo.url}
+          reason={screenshotFailureInfo.reason}
+        />
+      )}
     </div>
   );
 };

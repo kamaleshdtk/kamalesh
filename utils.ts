@@ -1,5 +1,3 @@
-
-
 import { AnalysisReport } from './types';
 
 // Simple hash function for creating a cache key from image data
@@ -11,6 +9,41 @@ export const simpleHash = (str: string): string => {
     hash |= 0; // Convert to 32bit integer
   }
   return hash.toString(36);
+};
+
+// Resizes an image to a maximum dimension while maintaining aspect ratio
+export const resizeImage = (dataUrl: string, mimeType: string, maxSize = 1024): Promise<{ data: string; mimeType: string }> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = dataUrl;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+
+      if (width > height) {
+        if (width > maxSize) {
+          height *= maxSize / width;
+          width = maxSize;
+        }
+      } else {
+        if (height > maxSize) {
+          width *= maxSize / height;
+          height = maxSize;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return reject(new Error('Could not get canvas context'));
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      // Use 0.9 quality for JPEG to further reduce size
+      resolve({ data: canvas.toDataURL(mimeType, 0.9), mimeType });
+    };
+    img.onerror = (error) => reject(error);
+  });
 };
 
 
@@ -27,8 +60,8 @@ export const fileToDataUrl = (file: File): Promise<{ data: string; mimeType: str
   });
 };
 
-// Helper function for retrying with exponential backoff
-const fetchWithRetry = async (url: string, retries = 10, delay = 3000): Promise<Response> => {
+// Helper function for retrying with exponential backoff, configured to fail faster.
+const fetchWithRetry = async (url: string, retries = 2, delay = 1500): Promise<Response> => {
     try {
         const response = await fetch(url);
         if (response.status === 429 && retries > 0) {
@@ -47,6 +80,34 @@ const fetchWithRetry = async (url: string, retries = 10, delay = 3000): Promise<
     }
 };
 
+// Converts a GIF blob to a PNG data URL
+const convertGifToPng = (blob: Blob): Promise<{ data: string; mimeType: string }> => {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return reject(new Error('Could not get canvas context for GIF conversion.'));
+      }
+      ctx.drawImage(img, 0, 0);
+      const pngDataUrl = canvas.toDataURL('image/png');
+      URL.revokeObjectURL(url); // Clean up the object URL
+      resolve({ data: pngDataUrl, mimeType: 'image/png' });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load GIF image for conversion.'));
+    };
+    img.src = url;
+  });
+};
+
+
 export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeType: string }> => {
   try {
     // Validate and format URL
@@ -56,7 +117,7 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
     }
     new URL(fullUrl); // This will throw an error for invalid URLs
 
-    const screenshotApiUrl = `https://image.thum.io/get/width/1280/crop/720/noanimate/${encodeURIComponent(fullUrl)}`;
+    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&h=720`;
 
     const response = await fetchWithRetry(screenshotApiUrl);
     
@@ -69,6 +130,12 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
     
     const imageBlob = await response.blob();
     const mimeType = imageBlob.type;
+    
+    // If the service returns a GIF, convert it to PNG client-side.
+    if (mimeType === 'image/gif') {
+        console.warn('Screenshot service returned a GIF, converting to PNG...');
+        return convertGifToPng(imageBlob);
+    }
 
     // Convert the image blob to a base64 data URL
     const reader = new FileReader();
