@@ -10,13 +10,19 @@ interface NotificationsPanelProps {
 
 const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ settings, onUpdateSettings }) => {
     return (
-        <SectionCard title="Email Notifications" description="Manage how you receive notifications from us.">
+        <SectionCard title="Notifications" description="Manage how you receive notifications from us.">
             <div className="divide-y divide-gray-200/80 dark:divide-gray-700">
                 <ToggleSwitch 
-                    label="Review Completion" 
+                    label="Email on Review Completion" 
                     description="Get an email when your analysis is ready." 
                     enabled={settings.emailOnComplete} 
                     setEnabled={(v) => onUpdateSettings({ emailOnComplete: v })} 
+                />
+                 <ToggleSwitch 
+                    label="Slack on Review Completion" 
+                    description="Get a Slack message when your analysis is ready." 
+                    enabled={settings.slackOnComplete} 
+                    setEnabled={(v) => onUpdateSettings({ slackOnComplete: v })} 
                 />
                 <ToggleSwitch 
                     label="Weekly Summary" 

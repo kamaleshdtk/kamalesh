@@ -27,6 +27,7 @@ export interface ReviewSettings {
 }
 export interface NotificationSettings {
   emailOnComplete: boolean;
+  slackOnComplete: boolean;
   emailWeekly: boolean;
   productUpdates: boolean;
 }
@@ -69,6 +70,7 @@ const AppContent: React.FC = () => {
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
     emailOnComplete: true,
+    slackOnComplete: false,
     emailWeekly: false,
     productUpdates: true,
   });
@@ -245,30 +247,6 @@ const AppContent: React.FC = () => {
     }
   };
   
-  const handleReanalyzeReport = useCallback(async (report: AnalysisReport) => {
-    setCurrentPage('loading');
-    try {
-        const mimeType = report.screenshot_url.substring(report.screenshot_url.indexOf(':') + 1, report.screenshot_url.indexOf(';'));
-        const image = { data: report.screenshot_url, mimeType: mimeType };
-        
-        await runAnalysisAndDisplayReport(
-            image,
-            report.review_type,
-            report.input_type,
-            report.input_value,
-            true // always ignore cache
-        );
-    } catch (err: any) {
-         console.error(err);
-         const errorMessage = err.message || 'An unknown error occurred during re-analysis.';
-         addToast(errorMessage, 'error');
-         // Go back to the original report on error
-         setSelectedReport(report); 
-         setCurrentPage('report');
-    }
-}, [runAnalysisAndDisplayReport, addToast]);
-
-
   const renderContent = () => {
     if (currentPage === 'auth' && !isLoggedIn) {
        return <AuthPage onLogin={handleLogin} />;
@@ -285,7 +263,7 @@ const AppContent: React.FC = () => {
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} onReanalyze={handleReanalyzeReport} /> : <Dashboard onSubmit={handleSubmit} reports={reports} onViewReport={handleViewReport} onNavigateToHistory={() => navigateToDashboard('reviews')} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard onSubmit={handleSubmit} reports={reports} onViewReport={handleViewReport} onNavigateToHistory={() => navigateToDashboard('reviews')} />;
       case 'dashboard':
         return <ProfileDashboardPage 
                   user={user} 

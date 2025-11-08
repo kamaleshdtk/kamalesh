@@ -72,8 +72,8 @@ const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
     const getSeverityStyles = (severity: string) => {
         switch (severity?.toLowerCase()) {
             case 'critical': return { pill: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', border: 'bg-red-500' };
-            case 'major': return { pill: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300', border: 'bg-yellow-500' };
-            case 'minor': return { pill: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', border: 'bg-blue-500' };
+            case 'major': return { pill: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300', border: 'bg-orange-500' };
+            case 'minor': return { pill: 'bg-accent-teal/10 text-accent-teal dark:bg-accent-teal/20 dark:text-accent-teal', border: 'bg-accent-teal' };
             default: return { pill: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300', border: 'bg-gray-400' };
         }
     }
@@ -151,7 +151,7 @@ const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onT
 };
 
 
-const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; onReanalyze: (report: AnalysisReport) => void; }> = ({ report, onBack, onReanalyze }) => {
+const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({ report, onBack }) => {
   const { result_json: results, screenshot_url, review_type } = report;
   const { addToast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -358,15 +358,6 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; onReana
                 Back to Home
               </button>
               <div className="flex items-center gap-3">
-                <button 
-                  onClick={() => onReanalyze(report)}
-                  className="flex items-center gap-2 text-sm text-primary dark:text-primary-light bg-primary/10 hover:bg-primary/20 px-4 py-2 rounded-lg font-semibold transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h5m11 11v-5h-5m0 0a9 9 0 100-18 9 9 0 000 18z" />
-                  </svg>
-                  Re-analyze
-                </button>
                 <button 
                   onClick={handleExportPDF}
                   disabled={isExporting}
