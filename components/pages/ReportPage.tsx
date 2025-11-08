@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { AnalysisReport, AnalysisIssue, ReviewType, CategoryAnalysis } from '../../types';
 import { useToast } from '../../contexts/ToastContext';
 import { getDisplayName } from '../../utils';
+import CategoryIcon from '../shared/CategoryIcon';
 
 const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
   const radius = 110;
@@ -14,9 +14,9 @@ const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   const getScoreColor = (s: number) => {
-    if (s >= 85) return 'text-accent-teal';
-    if (s >= 60) return 'text-yellow-500';
-    return 'text-red-500';
+    if (s >= 85) return 'text-green-600 dark:text-green-400';
+    if (s >= 60) return 'text-yellow-500 dark:text-yellow-400';
+    return 'text-red-500 dark:text-red-400';
   };
   
   const getScoreDescription = (s: number) => {
@@ -33,7 +33,7 @@ const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
         className="-rotate-90"
       >
         <circle
-          className="text-gray-200"
+          className="text-gray-200 dark:text-gray-700"
           stroke="currentColor"
           strokeWidth={stroke}
           fill="transparent"
@@ -58,7 +58,7 @@ const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
         <span className={`text-7xl font-bold ${getScoreColor(score)}`}>
           {score}
         </span>
-        <p className="text-gray-400 font-semibold text-lg">/ 100</p>
+        <p className="text-gray-400 dark:text-gray-500 font-semibold text-lg">/ 100</p>
       </div>
        <p className={`absolute bottom-[-45px] text-2xl font-bold ${getScoreColor(score)}`}>
         {getScoreDescription(score)}
@@ -71,59 +71,58 @@ const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
 const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
     const getSeverityStyles = (severity: string) => {
         switch (severity?.toLowerCase()) {
-            case 'critical': return { pill: 'bg-red-100 text-red-800', border: 'bg-red-500' };
-            case 'major': return { pill: 'bg-yellow-100 text-yellow-800', border: 'bg-yellow-500' };
-            case 'minor': return { pill: 'bg-blue-100 text-blue-800', border: 'bg-blue-500' };
-            default: return { pill: 'bg-gray-100 text-gray-800', border: 'bg-gray-400' };
+            case 'critical': return { pill: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', border: 'bg-red-500' };
+            case 'major': return { pill: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300', border: 'bg-yellow-500' };
+            case 'minor': return { pill: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300', border: 'bg-blue-500' };
+            default: return { pill: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300', border: 'bg-gray-400' };
         }
     }
     const severityStyles = getSeverityStyles(issue.severity);
 
     return (
-        <div className="relative bg-white p-5 rounded-xl border border-gray-200/80 overflow-hidden">
+        <div className="relative bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200/80 dark:border-gray-700 overflow-hidden">
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${severityStyles.border}`}></div>
             <div className="pl-4">
                 <div className="flex justify-between items-start mb-2 gap-4">
-                    <h4 className="font-bold text-md text-text-primary flex-1">{issue.issueTitle}</h4>
+                    <h4 className="font-bold text-md text-text-primary dark:text-white flex-1">{issue.issueTitle}</h4>
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${severityStyles.pill}`}>{issue.severity}</span>
                 </div>
                 {issue.relevantLaw && <p className="text-sm font-medium text-primary mb-2">{issue.relevantLaw}</p>}
-                <p className="text-text-secondary text-sm mb-3">{issue.issueDescription}</p>
-                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <p className="text-sm font-semibold text-green-700">Recommendation:</p>
-                    <p className="text-sm text-text-secondary mt-1">{issue.recommendation}</p>
+                <p className="text-text-secondary dark:text-gray-400 text-sm mb-3">{issue.issueDescription}</p>
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">Recommendation:</p>
+                    <p className="text-sm text-text-secondary dark:text-gray-300 mt-1">{issue.recommendation}</p>
                 </div>
             </div>
         </div>
     );
 };
 
-const getScoreBarColor = (s: number) => {
-    if (s >= 85) return 'bg-accent-teal';
-    if (s >= 60) return 'bg-yellow-500';
-    return 'bg-red-500';
-};
 
 const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onToggle: () => void }> = ({ category, isOpen, onToggle }) => {
   const score = Math.round(category.categoryScore);
+  
+  const getScoreColor = (s: number) => {
+    if (s >= 85) return 'text-green-600 dark:text-green-400';
+    if (s >= 60) return 'text-yellow-500 dark:text-yellow-400';
+    return 'text-red-500 dark:text-red-400';
+  };
+
   return (
-    <div className="border-b border-gray-200">
+    <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
         <button
             onClick={onToggle}
-            className="w-full flex justify-between items-center py-4 text-left gap-4"
+            className="w-full flex justify-between items-center py-5 text-left gap-4"
             aria-expanded={isOpen}
         >
-            <h3 className="text-lg font-bold text-text-primary flex-1">{category.categoryName}</h3>
+            <div className="flex items-center gap-4">
+                <CategoryIcon categoryName={category.categoryName} className="w-6 h-6" />
+                <h3 className="text-lg font-bold text-text-primary dark:text-white">{category.categoryName}</h3>
+            </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <div className="w-24 h-2 bg-gray-200 rounded-full">
-                <div 
-                  className={`h-2 rounded-full ${getScoreBarColor(score)}`}
-                  style={{ width: `${score}%` }}
-                ></div>
-              </div>
-              <span className="text-lg font-semibold text-gray-600 w-16 text-right">{score}/100</span>
+              <span className={`text-lg font-bold w-16 text-right ${getScoreColor(score)}`}>{score}/100</span>
                <svg
-                  className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -131,12 +130,18 @@ const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onT
             </div>
         </button>
         <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[2000px] pb-6' : 'max-h-0'}`}>
-             <div className="space-y-4">
+             <div className="space-y-4 pl-10">
                   {category.issues && category.issues.length > 0 ? (
                     category.issues.map((issue, index) => <IssueCard key={index} issue={issue} />)
                   ) : (
-                    <div className="text-center py-6 bg-gray-50 rounded-xl border border-gray-200/60">
-                        <p className="text-text-secondary">No specific issues found in this category.</p>
+                    <div className="flex flex-col items-center justify-center text-center py-8 px-4 bg-green-50/50 dark:bg-green-900/20 rounded-xl border border-green-200/60 dark:border-green-800/50 shadow-soft">
+                        <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
+                        <p className="mt-4 font-semibold text-green-800 dark:text-green-200">Excellent! No issues found.</p>
+                        <p className="text-sm text-green-700 dark:text-green-400">This category meets all best practice guidelines.</p>
                     </div>
                   )}
             </div>
@@ -153,7 +158,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
   const isUiReview = review_type === ReviewType.UI;
-  const analysisTitle = isUiReview ? 'UI Analyze' : 'UX Analyze';
+  const analysisTitle = isUiReview ? 'UI Analysis' : 'UX Analysis';
   const categoryAnalyses = isUiReview ? results.uiCategoryAnalyses : results.uxCategoryAnalyses;
   const overallScore = isUiReview ? results.uiScore : results.uxScore;
 
@@ -263,7 +268,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
         doc.text(scoreLabel, margin, yPos + 5);
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(32);
-        doc.setTextColor(overallScore >= 85 ? '#2DD4BF' : overallScore >= 60 ? '#F59E0B' : '#DC2626');
+        doc.setTextColor(overallScore >= 85 ? '#16A34A' : overallScore >= 60 ? '#EAB308' : '#EF4444');
         doc.text(`${overallScore} / 100`, pageWidth - margin, yPos + 7, { align: 'right' });
         yPos += 15;
         
@@ -346,9 +351,9 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="relative bg-white rounded-2xl shadow-form-soft p-6 sm:p-8 border border-gray-200/60">
+      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-form-soft p-6 sm:p-8 border border-gray-200/60 dark:border-gray-700">
           <div className="flex items-center justify-between mb-8">
-              <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary font-medium transition-colors">
+              <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                 Back to Home
               </button>
@@ -375,18 +380,18 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
           
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-2">
-                <h2 className="text-2xl font-bold mb-4">Design Preview</h2>
-                <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-xl shadow-soft w-full border border-gray-200/80" />
-                <div className="mt-6 bg-gray-50/80 p-5 rounded-xl border border-gray-200/60">
-                    <h3 className="font-bold text-lg mb-2">Overall Summary</h3>
-                    <p className="text-text-secondary text-sm">{results.overallSummary}</p>
+                <h2 className="text-2xl font-bold mb-4 dark:text-white">Design Preview</h2>
+                <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-xl shadow-soft w-full border border-gray-200/80 dark:border-gray-700" />
+                <div className="mt-6 bg-gray-50/80 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200/60 dark:border-gray-700">
+                    <h3 className="font-bold text-lg mb-2 dark:text-white">Overall Summary</h3>
+                    <p className="text-text-secondary dark:text-gray-300 text-sm">{results.overallSummary}</p>
                 </div>
             </div>
             <div className="lg:col-span-3">
-                 <div className="bg-gray-50/80 rounded-2xl py-12 px-8 flex flex-col items-center justify-center min-h-[400px] border border-gray-200/60">
-                     <h2 className="text-2xl font-bold mb-8 text-center">Overall {isUiReview ? 'UI' : 'UX'} Score</h2>
+                 <div className="bg-gray-50/80 dark:bg-gray-900/50 rounded-2xl py-12 px-8 flex flex-col items-center justify-center min-h-[400px] border border-gray-200/60 dark:border-gray-700">
+                     <h2 className="text-2xl font-bold mb-8 text-center dark:text-white">Overall {isUiReview ? 'UI' : 'UX'} Score</h2>
                      <ProgressRing score={overallScore} />
-                     <p className="text-center text-text-secondary mt-16 max-w-xs">
+                     <p className="text-center text-text-secondary dark:text-gray-400 mt-16 max-w-xs">
                          Based on our analysis, your user {isUiReview ? 'interface is' : 'experience is'} performing well.
                      </p>
                  </div>
@@ -394,7 +399,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
           </div>
           
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">{analysisTitle} breakdown</h2>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{analysisTitle} breakdown</h2>
               {categoryAnalyses && categoryAnalyses.length > 0 ? (
                 <div className="grid grid-cols-1">
                   {categoryAnalyses.map((category) => (
@@ -407,7 +412,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void }> = ({ 
                   ))}
                 </div>
             ) : (
-                <p className="text-center py-8 text-text-secondary">No analysis data available for this category.</p>
+                <p className="text-center py-8 text-text-secondary dark:text-gray-400">No analysis data available for this category.</p>
             )}
           </div>
       </div>

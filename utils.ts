@@ -36,9 +36,8 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
     }
     new URL(fullUrl); // This will throw an error for invalid URLs
 
-    // PERMANENT FIX: Switched from the rate-limited Google PageSpeed API to a more reliable service.
-    // This resolves the '429 Too Many Requests' error.
-    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280`;
+    // FIX: Explicitly request PNG format to avoid receiving unsupported GIFs from the service.
+    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&f=png`;
 
     const response = await fetch(screenshotApiUrl);
     

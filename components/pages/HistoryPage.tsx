@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { AnalysisReport, ReviewType } from '../../types';
 import ReportCard from '../shared/ReportCard';
@@ -40,20 +41,20 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ reports, onViewReport, onBack
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
        <div className="mb-8">
-           <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary hover:text-primary font-medium transition-colors">
+           <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
             Back to Home
           </button>
        </div>
        <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold text-text-primary">Analyze History</h3>
+          <h3 className="text-2xl font-bold text-text-primary dark:text-white">Analyze History</h3>
           {reports.length > 0 && (
             <div className="relative">
               <select 
                 id="sort-history"
                 value={sortOption} 
                 onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="bg-white border border-gray-300 text-gray-700 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-3 pr-10 py-2.5 appearance-none"
+                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm rounded-lg focus:ring-primary focus:border-primary block w-full pl-3 pr-10 py-2.5 appearance-none"
                 aria-label="Sort reports"
               >
                 <option value="date-desc">Sort by: Newest First</option>
@@ -63,7 +64,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ reports, onViewReport, onBack
                 <option value="ux-desc">Sort by: UX Score (High-Low)</option>
                 <option value="ux-asc">Sort by: UX Score (Low-High)</option>
               </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-400">
                   <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
               </div>
             </div>

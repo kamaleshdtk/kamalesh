@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 
 const loadingMessages = [
@@ -47,8 +48,8 @@ const LoadingScreen: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4">
-      <h2 className="text-2xl font-bold text-gray-900 mt-6">Analyzing your design...</h2>
-      <p className="text-gray-600 mt-2 max-w-sm">
+      <h2 className="text-2xl font-bold text-gray-900 dark:text-white mt-6">Analyzing your design...</h2>
+      <p className="text-gray-600 dark:text-gray-400 mt-2 max-w-sm">
         Our AI is hard at work. This usually takes less than a minute.
       </p>
 
@@ -57,9 +58,9 @@ const LoadingScreen: React.FC = () => {
           <p className="text-primary transition-opacity duration-500">
               {loadingMessages[messageIndex]}
           </p>
-          <p className="text-gray-600">{Math.round(progress)}%</p>
+          <p className="text-gray-600 dark:text-gray-400">{Math.round(progress)}%</p>
         </div>
-        <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
           <div 
             className="bg-primary h-2.5 rounded-full transition-all duration-300 ease-linear" 
             style={{ width: `${progress}%` }}

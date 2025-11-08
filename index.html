@@ -10,18 +10,31 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
+      // Prevents FOUC (Flash of Unstyled Content)
+      if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
+    <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
             },
             colors: {
-              'primary': '#7E57FF',
-              'primary-light': '#9679FF',
-              'text-primary': '#111111',
-              'text-secondary': '#6B7280',
+              'primary': '#6C4DFF',
+              'primary-light': '#8A6DFF',
+              'text-primary': '#111827',
+              'text-secondary': '#4B5563',
               'accent-teal': '#2DD4BF',
+              'sidebar-hover': '#F8F8FA',
+              'danger-bg': '#FFF8F8',
+              'danger-border': '#FFDFDF',
+              'danger-text': '#D72F2F',
             },
             boxShadow: {
               'soft': '0 4px 20px -10px rgba(0,0,0,0.06)',
@@ -44,7 +57,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50">
+  <body class="bg-gray-50 dark:bg-[#111111]">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
