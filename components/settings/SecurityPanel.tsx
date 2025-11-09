@@ -21,13 +21,13 @@ const SecurityPanel: React.FC<SecurityPanelProps> = ({ onLogout }) => {
     return (
         <div className="space-y-8">
             <SectionCard title="Password">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center flex-wrap gap-4">
                     <p className="text-text-secondary dark:text-gray-400">Change your password regularly to keep your account secure.</p>
                      <button onClick={() => addToast('Password change modal would open here.', 'success')} className="px-4 py-2 text-sm font-semibold text-primary dark:text-primary-light border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Change Password</button>
                 </div>
             </SectionCard>
              <SectionCard title="Two-Factor Authentication">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center flex-wrap gap-4">
                     <p className="text-text-secondary dark:text-gray-400">Add an extra layer of security to your account.</p>
                      <button onClick={() => addToast('2FA setup modal would open here.', 'success')} className="px-5 py-2.5 text-sm font-semibold text-white bg-primary hover:bg-primary-light rounded-lg transition-colors">Enable 2FA</button>
                 </div>

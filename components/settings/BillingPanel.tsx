@@ -22,7 +22,7 @@ const BillingPanel: React.FC<BillingPanelProps> = ({ plan, onUpgrade }) => {
             <SectionCard 
                 title="Current Plan"
                 rightContent={
-                     <div className="flex items-center gap-3">
+                     <div className="flex items-center gap-3 flex-wrap justify-end">
                         <button onClick={onUpgrade} className="px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-light rounded-lg transition-colors">
                             Upgrade Plan
                         </button>
@@ -50,43 +50,45 @@ const BillingPanel: React.FC<BillingPanelProps> = ({ plan, onUpgrade }) => {
             </SectionCard>
 
             <SectionCard title="Payment Method">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center flex-wrap gap-4">
                     <p className="text-text-secondary dark:text-gray-400">No payment method on file.</p>
                     <button className="px-4 py-2 text-sm font-semibold text-primary border dark:text-primary-light border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors">Add Payment Method</button>
                 </div>
             </SectionCard>
             
             <SectionCard title="Invoice History">
-                <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                    <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                            <th scope="col" className="px-6 py-3">Invoice ID</th>
-                            <th scope="col" className="px-6 py-3">Date</th>
-                            <th scope="col" className="px-6 py-3">Amount</th>
-                            <th scope="col" className="px-6 py-3">Status</th>
-                            <th scope="col" className="px-6 py-3"><span className="sr-only">Download</span></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {invoices.length > 0 ? invoices.map(invoice => (
-                            <tr key={invoice.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                                <th scope="row" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{invoice.id}</th>
-                                <td className="px-6 py-4">{invoice.date}</td>
-                                <td className="px-6 py-4">{invoice.amount}</td>
-                                <td className="px-6 py-4"><span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">{invoice.status}</span></td>
-                                <td className="px-6 py-4 text-right">
-                                    <a href="#" className="font-medium text-primary hover:underline">Download</a>
-                                </td>
-                            </tr>
-                        )) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead className="text-xs text-gray-700 dark:text-gray-300 uppercase bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <td colSpan={5} className="text-center py-10 text-gray-500 dark:text-gray-400">
-                                    You have no invoices yet.
-                                </td>
+                                <th scope="col" className="px-6 py-3">Invoice ID</th>
+                                <th scope="col" className="px-6 py-3">Date</th>
+                                <th scope="col" className="px-6 py-3">Amount</th>
+                                <th scope="col" className="px-6 py-3">Status</th>
+                                <th scope="col" className="px-6 py-3"><span className="sr-only">Download</span></th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {invoices.length > 0 ? invoices.map(invoice => (
+                                <tr key={invoice.id} className="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                    <th scope="row" className="px-6 py-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">{invoice.id}</th>
+                                    <td className="px-6 py-4">{invoice.date}</td>
+                                    <td className="px-6 py-4">{invoice.amount}</td>
+                                    <td className="px-6 py-4"><span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">{invoice.status}</span></td>
+                                    <td className="px-6 py-4 text-right">
+                                        <a href="#" className="font-medium text-primary hover:underline">Download</a>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={5} className="text-center py-10 text-gray-500 dark:text-gray-400">
+                                        You have no invoices yet.
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </SectionCard>
         </div>
     );

@@ -115,7 +115,12 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
     if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
         fullUrl = 'https://' + fullUrl;
     }
-    new URL(fullUrl); // This will throw an error for invalid URLs
+    
+    try {
+        new URL(fullUrl); // This will throw an error for invalid URLs
+    } catch (e) {
+        throw new Error("The URL format is invalid. Please check it and try again (e.g., 'example.com').");
+    }
 
     const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&h=720`;
 
@@ -125,7 +130,10 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
       if (response.status === 429) {
           throw new Error('The screenshot service is busy due to high traffic. Please try again in a moment.');
       }
-      throw new Error(`Failed to fetch screenshot. The service may be temporarily unavailable or the URL is invalid. (Status: ${response.status})`);
+      if (response.status >= 400 && response.status < 500) {
+          throw new Error(`We couldn't access this URL. It might be offline, private, or a broken link. (Error: ${response.status})`);
+      }
+      throw new Error(`The screenshot service failed due to a server error. (Status: ${response.status})`);
     }
     
     const imageBlob = await response.blob();
@@ -155,10 +163,12 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
 
   } catch (error) {
     console.error("Error capturing website screenshot:", error);
-    if (error instanceof Error && (error.message.includes('Status:') || error.message.includes('high traffic'))) {
+    if (error instanceof Error) {
+        // Re-throw specific, user-friendly errors from within the try block
         throw error;
     }
-    throw new Error("Could not capture a screenshot. The URL may be invalid, private, or the service may be unavailable.");
+    // Generic fallback for completely unexpected errors (like network failure in fetchWithRetry)
+    throw new Error("Could not capture a screenshot due to a network issue or an unknown problem.");
   }
 };
 

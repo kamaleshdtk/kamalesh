@@ -76,7 +76,7 @@ const ProfileDashboardPage: React.FC<ProfileDashboardPageProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-5 gap-8">
                 <aside className="md:col-span-1 lg:col-span-1">
-                    <nav className="space-y-1 sticky top-32">
+                    <nav className="space-y-1 md:sticky md:top-24">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -84,7 +84,7 @@ const ProfileDashboardPage: React.FC<ProfileDashboardPageProps> = ({
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold transition-colors text-left ${
                                     activeTab === tab.id
                                         ? 'bg-primary/10 text-primary'
-                                        : 'text-text-secondary dark:text-gray-400 hover:bg-sidebar-hover dark:hover:bg-gray-700/50'
+                                        : 'text-text-secondary dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                             >
                                 {tab.icon}

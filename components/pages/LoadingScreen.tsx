@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 
 const analysisSteps = [
-    "Analyzing spacing and visual hierarchy...",
-    "Detecting contrast and accessibility issues...",
-    "Reviewing alignment precision...",
-    "Checking typography scale consistency...",
-    "Evaluating color usage and brand coherence...",
-    "Mapping UI to UX heuristics...",
-    "Prioritizing issues based on impact...",
+    "Initializing analysis engine...",
+    "Establishing secure connection...",
+    "Parsing DOM structure from screenshot...",
+    "Analyzing visual hierarchy and element grouping...",
+    "Evaluating color palette for accessibility (WCAG)...",
+    "Measuring typography scale and readability...",
+    "Cross-referencing with common UX laws (Hick's, Fitts')...",
+    "Detecting potential cognitive load issues...",
+    "Identifying inconsistencies in design system...",
+    "Simulating user flow for task completion...",
+    "Compiling heuristic evaluation report...",
     "Generating actionable recommendations...",
-    "Preparing final structured report...",
+    "Finalizing report and calculating scores...",
 ];
 
 const LoadingScreen: React.FC = () => {
@@ -38,10 +42,10 @@ const LoadingScreen: React.FC = () => {
                 
                 {/* Orbiting Particles */}
                 <div className="absolute w-full h-full">
-                    <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-accent-teal rounded-full animate-orbit [animation-delay:-1s]"></div>
-                    <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-primary-light rounded-full animate-orbit [animation-delay:-3s] [animation-duration:8s]"></div>
-                    <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full animate-orbit-reverse [animation-delay:-2s]"></div>
-                     <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-accent-teal/70 rounded-full animate-orbit-reverse [animation-delay:-5s] [animation-duration:12s]"></div>
+                    <div className="absolute top-1/2 left-1/2 w-4 h-4 bg-primary-light/80 rounded-full animate-orbit [animation-delay:-1s]"></div>
+                    <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-primary rounded-full animate-orbit [animation-delay:-3s] [animation-duration:8s]"></div>
+                    <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray-400 dark:bg-gray-600 rounded-full animate-orbit-reverse [animation-delay:-2s]"></div>
+                     <div className="absolute top-1/2 left-1/2 w-3 h-3 bg-primary/50 rounded-full animate-orbit-reverse [animation-delay:-5s] [animation-duration:12s]"></div>
                 </div>
 
                 {/* Static Rings for structure */}
@@ -50,13 +54,13 @@ const LoadingScreen: React.FC = () => {
             </div>
 
             <div className="h-12 flex flex-col items-center justify-center w-full max-w-md">
-                <p key={currentStep} className="text-lg font-semibold text-gray-800 dark:text-gray-200 animate-fade-in">
+                <p key={currentStep} className="text-lg font-semibold text-text-secondary dark:text-gray-200 animate-fade-in">
                     {analysisSteps[currentStep]}
                 </p>
             </div>
             
             <div className="w-full max-w-md mt-8 text-center">
-                <p className="text-sm text-text-secondary dark:text-gray-400">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                     This usually takes 6–12 seconds.
                 </p>
             </div>

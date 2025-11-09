@@ -22,6 +22,8 @@ export interface CategoryAnalysis {
 export interface AnalysisResult {
   isCaptcha: boolean;
   isAccessDenied: boolean;
+  isErrorPage: boolean;
+  isNotUiScreenshot: boolean;
   uiScore: number; // Overall average score
   uxScore: number; // Overall average score
   overallSummary: string;

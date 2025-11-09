@@ -32,6 +32,8 @@ const responseSchema = {
   properties: {
     isCaptcha: { type: Type.BOOLEAN, description: "True if the image is a CAPTCHA/bot check, otherwise false." },
     isAccessDenied: { type: Type.BOOLEAN, description: "True if the image is an access denied/permission error page, otherwise false." },
+    isErrorPage: { type: Type.BOOLEAN, description: "True if the image is a generic web error page (e.g., 404 Not Found), otherwise false." },
+    isNotUiScreenshot: { type: Type.BOOLEAN, description: "True if the image is NOT a screenshot of a website, app, or UI mockup, but something else like a photo of nature." },
     uiScore: { type: Type.NUMBER, description: "Overall UI score from 0 to 100, calculated as the average of all UI category scores." },
     uxScore: { type: Type.NUMBER, description: "Overall UX score from 0 to 100, calculated as the average of all UX category scores." },
     overallSummary: { type: Type.STRING, description: "A brief, two-sentence summary of the key findings." },
@@ -46,13 +48,13 @@ const responseSchema = {
       items: categoryAnalysisSchema(issueSchema), // Simplified to use the same enhanced schema
     },
   },
-  required: ["isCaptcha", "isAccessDenied", "uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
+  required: ["isCaptcha", "isAccessDenied", "isErrorPage", "isNotUiScreenshot", "uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
 };
 
 
 const getReviewPrompt = (reviewType: ReviewType): string => {
   const basePrompt = `
-    You are UXRay, an expert UI/UX analysis AI. Your primary goal is to provide a detailed design audit. Before you begin, you must perform two critical safety checks in order.
+    You are UXRay, an expert UI/UX analysis AI. Your primary goal is to provide a detailed design audit. Before you begin, you must perform four critical safety checks in order.
 
     **Step 1: CAPTCHA Verification**
 
@@ -84,19 +86,58 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
         - The key indicator is that the page lacks any of the website's normal branding, navigation, or styling. It looks like a raw error message.
 
     - **Definition of NOT an Access Denied Page (Set \`isAccessDenied: false\`):**
-        - **Styled 404 Pages:** A website's custom "Page Not Found" page.
-        - **Login Walls:** Pages that say "Please log in to view this content."
+        - **User Authentication Screens:** This is critical. Login forms, sign-up pages, and password fields are part of the application, not a server block. Do not classify these as access denied.
+        - **Styled 404 Pages:** A website's custom "Page Not Found" page (this will be handled in the next step).
         - **Paywalls:** Pages asking the user to subscribe to see the article.
         - **In-app Permission Messages:** A message within the website's normal layout that says "Your plan doesn't include this feature."
         - Any page that contains the website's regular header, footer, or branding is NOT a server-level access denied page.
 
     - **Your Action for Step 2:**
         - If the image matches the strict Access Denied definition, set \`isAccessDenied: true\` and STOP. Provide empty/default values for all other fields.
-        - If not, set \`isAccessDenied: false\` and proceed to the final step.
+        - If not, set \`isAccessDenied: false\` and proceed to the next step.
 
-    **Step 3: Full Design Analysis**
+    **Step 3: Web Error Page Verification**
+
+    After confirming it's not a CAPTCHA or Access Denied page, check if it's a generic WEB-APPLICATION error page.
+
+    - **Definition of an Error Page (Set \`isErrorPage: true\`):**
+        - **The entire page's primary purpose must be to communicate a critical failure.**
+        - **Styled 404 Pages:** A website's custom-branded "Page Not Found", "404 Error".
+        - **Server Error Pages:** "500 Internal Server Error", "503 Service Unavailable".
+        - **Connection Errors:** "This site can’t be reached", "Unable to connect".
+        
+    - **Definition of NOT an Error Page (Set \`isErrorPage: false\`):**
+        - **A page is NOT an error page if it is a functioning part of the user journey, even if it contains negative feedback.**
+        - **User Authentication:** Login pages, sign-up forms, password reset screens.
+        - **Form Validation:** A form showing an inline error like "This field is required" or "Invalid email".
+        - **Empty States:** A page showing "You have no messages", "Your cart is empty", or "No search results found".
+        - **Gated Content:** Paywalls, subscription pages, cookie consent banners.
+        - **Success/Confirmation Messages:** "Your order is complete".
+        - Any page that contains the website's regular navigation, header, or footer and is presenting application state is NOT a generic web error page.
+
+    - **Your Action for Step 3:**
+        - If the image matches the Error Page definition, set \`isErrorPage: true\` and STOP. Provide empty/default values for all other fields.
+        - If not, set \`isErrorPage: false\` and proceed to the next step.
+        
+    **Step 4: UI Content Verification**
+
+    Finally, before the main analysis, verify that the image is actually a user interface.
+
+    - **Definition of NOT a UI Screenshot (Set \`isNotUiScreenshot: true\`):**
+        - The image is a photograph of a real-world scene (e.g., nature, people, animals, objects).
+        - It is an abstract piece of art, a medical scan, a non-UI diagram, or any other image that does not depict a software interface.
+        
+    - **Definition of a UI Screenshot (Set \`isNotUiScreenshot: false\`):**
+        - The image contains clear UI elements from a website, mobile app, desktop application, or a design mockup (e.g., from Figma). This includes buttons, menus, text, navigation bars, icons, windows, etc.
+
+    - **Your Action for Step 4:**
+        - If the image is NOT a UI screenshot, set \`isNotUiScreenshot: true\` and STOP. Provide empty/default values for all other fields.
+        - If it IS a UI screenshot, set \`isNotUiScreenshot: false\` and proceed to the final analysis step.
+
+
+    **Step 5: Full Design Analysis**
     
-    If, and only if, you have determined the image is NOT a CAPTCHA and NOT an Access Denied page, proceed with the following instructions.
+    If, and only if, you have determined the image is NOT a CAPTCHA, NOT an Access Denied page, NOT an Error Page, and IS a UI Screenshot, proceed with the following instructions.
     Your task is to conduct a strict, professional audit of the provided screenshot. Do not provide general tips or nice suggestions. Be critical and objective, identifying concrete violations of established design principles based on the checklists below.
     Your tone must be that of an expert auditor: direct, precise, and authoritative.
 
@@ -261,10 +302,16 @@ export const analyzeDesign = async (
     const result: AnalysisResult = JSON.parse(jsonString);
     
     if (result.isCaptcha) {
-        throw new Error("This website uses a security check (CAPTCHA) that blocked the analysis. Please take a screenshot manually and upload it.");
+        throw new Error("The analysis was blocked by a security check (CAPTCHA). Automated tools cannot bypass these.");
     }
     if (result.isAccessDenied) {
-        throw new Error("This website returned an 'Access Denied' error, which blocked the analysis. Please take a screenshot manually and upload it.");
+        throw new Error("Access to this URL was blocked, likely by a security service (like Cloudflare) or a login requirement.");
+    }
+    if (result.isErrorPage) {
+        throw new Error("The URL points to an error page (e.g., 404 Not Found). Please check the link is correct and the website is online.");
+    }
+    if (result.isNotUiScreenshot) {
+        throw new Error("The uploaded image does not appear to be a website or application screenshot. Please upload a valid UI design.");
     }
     
     // Ensure scores are within bounds
@@ -275,7 +322,7 @@ export const analyzeDesign = async (
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    if (error instanceof Error && (error.message.includes('CAPTCHA') || error.message.includes('Access Denied'))) {
+    if (error instanceof Error && (error.message.includes('CAPTCHA') || error.message.includes('Access') || error.message.includes('error page') || error.message.includes('not appear to be a website'))) {
       throw error;
     }
     throw new Error("Failed to get analysis from AI. The response might be malformed or the API call failed.");

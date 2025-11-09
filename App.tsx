@@ -8,6 +8,7 @@ import LoadingScreen from './components/pages/LoadingScreen';
 import ReportPage from './components/pages/ReportPage';
 import ProfileDashboardPage from './components/pages/SettingsPage';
 import PricingPage from './components/pages/PricingPage';
+import AccessDeniedPage from './components/pages/AccessDeniedPage';
 import Footer from './components/Footer';
 import ScreenshotFallbackModal from './components/pages/ScreenshotFallbackModal';
 import { ToastProvider, useToast } from './contexts/ToastContext';
@@ -42,18 +43,19 @@ const userPlan = {
 
 export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'review-settings' | 'notifications' | 'security' | 'help';
 export type Theme = 'light' | 'dark' | 'system';
-type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
+export type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
 
 const AppContent: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report' | 'dashboard' | 'pricing'>('auth');
+  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report' | 'dashboard' | 'pricing' | 'access-denied'>('auth');
   const [initialDashboardTab, setInitialDashboardTab] = useState<DashboardTab>('profile');
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
   const { addToast } = useToast();
 
   const [screenshotFailureInfo, setScreenshotFailureInfo] = useState<{ reason: string; url: string; reviewType: ReviewType } | null>(null);
-  
+  const [urlSubmissionError, setUrlSubmissionError] = useState<{ url: string; reviewType: ReviewType; reason: string } | null>(null);
+
   // --- State for User and Settings ---
   const [user, setUser] = useState<UserProfile>({
     name: 'Demo User',
@@ -128,7 +130,10 @@ const AppContent: React.FC = () => {
     setReports([]);
   };
 
-  const navigateToHome = () => setCurrentPage('home');
+  const navigateToHome = () => {
+    setCurrentPage('home');
+    setUrlSubmissionError(null);
+  }
   const navigateToPricing = () => setCurrentPage('pricing');
 
   const navigateToDashboard = (tab: DashboardTab = 'profile') => {
@@ -152,18 +157,19 @@ const AppContent: React.FC = () => {
     const resizedImage = await resizeImage(image.data, image.mimeType);
 
     const cacheKey = `report-cache-${reviewType}-${simpleHash(resizedImage.data)}`;
+    
     if (!ignoreCache) {
-      const cachedReportJSON = localStorage.getItem(cacheKey);
-      if (cachedReportJSON) {
-        const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
-        setSelectedReport(cachedReport);
-        setCurrentPage('report');
-        addToast('Loaded report from cache.', 'success');
-        if (!reports.some(r => r.id === cachedReport.id)) {
-          setReports(prev => [cachedReport, ...prev]);
+        const cachedReportJSON = localStorage.getItem(cacheKey);
+        if (cachedReportJSON) {
+          const cachedReport: AnalysisReport = JSON.parse(cachedReportJSON);
+          setSelectedReport(cachedReport);
+          setCurrentPage('report');
+          addToast('Loaded report from cache.', 'success');
+          if (!reports.some(r => r.id === cachedReport.id)) {
+            setReports(prev => [cachedReport, ...prev]);
+          }
+          return; // End here for cache hit
         }
-        return; // End here for cache hit
-      }
     }
 
     const result = await analyzeDesign(resizedImage, reviewType);
@@ -193,10 +199,11 @@ const AppContent: React.FC = () => {
   const handleSubmit = useCallback(async (
     submission: Submission,
     reviewType: ReviewType,
-    ignoreCache = false
+    ignoreCache: boolean,
   ) => {
     setCurrentPage('loading');
     setScreenshotFailureInfo(null);
+    setUrlSubmissionError(null);
     
     try {
         let image: { data: string, mimeType: string, name?: string };
@@ -218,26 +225,47 @@ const AppContent: React.FC = () => {
             reviewType,
             inputType,
             inputValue,
-            ignoreCache
+            ignoreCache,
         );
 
     } catch (err: any) {
         console.error(err);
         const errorMessage = err.message || 'An unknown error occurred.';
-        addToast(errorMessage, 'error');
-        setCurrentPage('home');
-
+        
         if (submission.type === 'URL') {
-            setScreenshotFailureInfo({ reason: errorMessage, url: submission.value, reviewType });
+            // Unify all URL-based errors to show the special error page.
+            setUrlSubmissionError({
+                url: submission.value,
+                reviewType,
+                reason: errorMessage,
+            });
+            setCurrentPage('access-denied');
+        } else {
+            // For direct image uploads, a simple toast is sufficient.
+            addToast(errorMessage, 'error');
+            setCurrentPage('home');
         }
     }
   }, [addToast, runAnalysisAndDisplayReport]);
+
+  const handleManualUploadRequest = () => {
+    if (urlSubmissionError) {
+      setScreenshotFailureInfo({
+        reason: urlSubmissionError.reason,
+        url: urlSubmissionError.url,
+        reviewType: urlSubmissionError.reviewType,
+      });
+       setUrlSubmissionError(null); // Clear the error page state
+       setCurrentPage('home'); // Go back to home to show the modal over the dashboard
+    }
+  };
 
 
   const handleFallbackSubmit = (manualFile: File) => {
     if (screenshotFailureInfo) {
       const { reviewType, url } = screenshotFailureInfo;
       setCurrentPage('loading');
+      setScreenshotFailureInfo(null);
       fileToDataUrl(manualFile).then(image => {
         runAnalysisAndDisplayReport(image, reviewType, 'URL', url, true);
       }).catch(err => {
@@ -255,15 +283,14 @@ const AppContent: React.FC = () => {
     switch (currentPage) {
       case 'home':
         return <Dashboard 
-                  onSubmit={handleSubmit}
                   reports={reports}
                   onViewReport={handleViewReport}
-                  onNavigateToHistory={() => navigateToDashboard('reviews')}
+                  onSubmit={handleSubmit}
                 />;
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard onSubmit={handleSubmit} reports={reports} onViewReport={handleViewReport} onNavigateToHistory={() => navigateToDashboard('reviews')} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} />;
       case 'dashboard':
         return <ProfileDashboardPage 
                   user={user} 
@@ -281,6 +308,18 @@ const AppContent: React.FC = () => {
                 />;
       case 'pricing':
         return <PricingPage onBack={navigateToHome} />;
+      case 'access-denied':
+        return urlSubmissionError ? 
+            <AccessDeniedPage 
+                onBack={navigateToHome} 
+                onUploadManually={handleManualUploadRequest}
+                reason={urlSubmissionError.reason}
+            /> :
+            <Dashboard 
+                reports={reports}
+                onViewReport={handleViewReport}
+                onSubmit={handleSubmit}
+              />;
       default:
         return <AuthPage onLogin={handleLogin} />;
     }
@@ -289,7 +328,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="font-sans text-text-primary dark:text-gray-300 min-h-screen flex flex-col">
       {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToDashboard={navigateToDashboard} onNavigateToPricing={navigateToPricing} theme={theme} setTheme={setTheme} />}
-      <main className="pt-28 sm:pt-32 flex-grow">
+      <main className="flex-grow pt-16">
           {renderContent()}
       </main>
       {isLoggedIn && <Footer />}

@@ -4,6 +4,7 @@ import { DashboardTab, Theme } from '../../App';
 interface HeaderProps {
   user: {
     name: string;
+    email: string;
     avatar: string;
   };
   onLogout: () => void;
@@ -17,8 +18,8 @@ interface HeaderProps {
 const Logo: React.FC<{ onClick: () => void }> = ({ onClick }) => (
   <button onClick={onClick} className="flex items-center gap-2 flex-shrink-0" aria-label="Go to homepage">
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M10.2857 2C9.57143 2 8.99999 2.57143 8.99999 3.28571C8.99999 4 9.57143 4.57143 10.2857 4.57143C12.4286 4.57143 14.1429 6.28571 14.1429 8.42857C14.1429 9.57143 13.5714 10.5714 12.7143 11.2857C11.8571 12 11.2857 13.1429 11.2857 14.2857V15.7143C11.2857 16.4286 11.8571 17 12.5714 17C13.2857 17 13.8571 16.4286 13.8571 15.7143V14.2857C13.8571 12.5714 14.7143 11 15.8571 10.1429C17.1429 9.14286 17.8571 7.42857 17.8571 5.71429C17.8571 3.57143 15.7143 2 13.2857 2H10.2857Z" fill="#6C4DFF"/>
-      <path d="M12.5714 20C11.8571 20 11.2857 20.5714 11.2857 21.2857C11.2857 22 11.8571 22.5714 12.5714 22.5714C13.2857 22.5714 13.8571 22 13.8571 21.2857C13.8571 20.5714 13.2857 20 12.5714 20Z" fill="#6C4DFF"/>
+      <path d="M10.2857 2C9.57143 2 8.99999 2.57143 8.99999 3.28571C8.99999 4 9.57143 4.57143 10.2857 4.57143C12.4286 4.57143 14.1429 6.28571 14.1429 8.42857C14.1429 9.57143 13.5714 10.5714 12.7143 11.2857C11.8571 12 11.2857 13.1429 11.2857 14.2857V15.7143C11.2857 16.4286 11.8571 17 12.5714 17C13.2857 17 13.8571 16.4286 13.8571 15.7143V14.2857C13.8571 12.5714 14.7143 11 15.8571 10.1429C17.1429 9.14286 17.8571 7.42857 17.8571 5.71429C17.8571 3.57143 15.7143 2 13.2857 2H10.2857Z" fill="#4F46E5"/>
+      <path d="M12.5714 20C11.8571 20 11.2857 20.5714 11.2857 21.2857C11.2857 22 11.8571 22.5714 12.5714 22.5714C13.2857 22.5714 13.8571 22 13.8571 21.2857C13.8571 20.5714 13.2857 20 12.5714 20Z" fill="#4F46E5"/>
     </svg>
     <h1 className="text-xl font-extrabold text-text-primary dark:text-white">UXRay</h1>
   </button>
@@ -46,8 +47,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuRef, productsMenuRef]);
 
-  const navLinkClasses = "px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors";
-  const userMenuItemClasses = "flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-text-primary dark:text-gray-200 hover:bg-sidebar-hover dark:hover:bg-gray-700/50 transition-colors rounded-md";
+  const navLinkClasses = "px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light transition-colors";
+  const userMenuItemClasses = "flex items-center gap-3 w-full text-left px-4 py-2 text-sm text-text-secondary dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-md";
 
   const handleUserMenuClick = (tab: DashboardTab) => {
     onNavigateToDashboard(tab);
@@ -55,9 +56,9 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
   };
   
   return (
-    <header className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg fixed top-0 left-0 right-0 z-20 border-b border-gray-200/80 dark:border-gray-700/80">
+    <header className="fixed top-0 left-0 right-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-3">
+        <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-8">
             <Logo onClick={onNavigateHome} />
             <nav className="hidden md:flex items-center gap-4">
@@ -72,8 +73,8 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
                   </svg>
                 </button>
                 <div 
-                  className={`absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-200/80 dark:border-gray-700 origin-top-left transition-all duration-200 ease-out
-                  ${isProductsMenuOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-1 pointer-events-none'}`}
+                  className={`absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-200 dark:border-gray-700 origin-top-left transition-all duration-200 ease-out
+                  ${isProductsMenuOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
                 >
                   <a href="#" className="flex justify-between items-center w-full text-left px-4 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60">Heatmaps <span className="text-xs text-primary font-semibold">Soon</span></a>
                   <a href="#" className="flex justify-between items-center w-full text-left px-4 py-2 text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-60">Click Maps <span className="text-xs text-primary font-semibold">Soon</span></a>
@@ -85,16 +86,16 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center">
+            <div className="hidden md:flex items-center gap-4">
                <div className="relative" ref={userMenuRef}>
                 <button onClick={() => setIsUserMenuOpen(!isUserMenuOpen)} className="flex items-center gap-2 group">
-                    <img src={user.avatar} alt="User Avatar" className="w-8 h-8 rounded-full" />
+                    <img src={user.avatar} alt="User Avatar" className="w-9 h-9 rounded-full" />
                 </button>
                 <div 
-                  className={`absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 border border-gray-200/80 dark:border-gray-700 origin-top-right transition-all duration-200 ease-out
-                  ${isUserMenuOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 translate-y-1 pointer-events-none'}`}
+                  className={`absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg p-2 border border-gray-200 dark:border-gray-700 origin-top-right transition-all duration-200 ease-out
+                  ${isUserMenuOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}
                 >
-                    <div className="px-4 py-2 text-sm border-b dark:border-gray-700 mb-2">
+                    <div className="px-4 py-2 text-sm border-b border-gray-200 dark:border-gray-700 mb-2">
                       <p className="font-bold text-text-primary dark:text-white">{user.name}</p>
                       <p className="text-text-secondary dark:text-gray-400 truncate">{user.email}</p>
                     </div>
@@ -116,12 +117,12 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
                     </button>
                     <div className="h-px bg-gray-200 dark:bg-gray-700 my-1 mx-2"></div>
                     <div className="px-2 py-1">
-                      <label htmlFor="theme-switcher" className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1 px-2">Theme</label>
+                      <label htmlFor="theme-switcher" className="text-sm font-medium text-text-secondary dark:text-gray-400 block mb-1 px-2">Theme</label>
                       <select
                         id="theme-switcher"
                         value={theme}
                         onChange={(e) => setTheme(e.target.value as Theme)}
-                        className="w-full bg-gray-100 dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-text-primary dark:text-white px-2 py-1.5 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                        className="w-full bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-200 px-2 py-1.5 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                       >
                         <option value="light">🌞 Light</option>
                         <option value="dark">🌚 Dark</option>
@@ -140,7 +141,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
                 type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 dark:text-gray-300 hover:text-primary dark:hover:text-primary hover:bg-gray-100 dark:hover:bg-gray-800 focus:outline-none"
+                className="inline-flex items-center justify-center p-2 rounded-md text-gray-500 dark:text-gray-300 hover:text-primary focus:outline-none"
                 aria-controls="mobile-menu"
                 aria-expanded={isMenuOpen}
               >
@@ -160,7 +161,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
         </div>
       </div>
 
-      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white dark:bg-gray-800/95 border-b dark:border-gray-700 ${isMenuOpen ? 'max-h-[500px]' : 'max-h-0'}`} id="mobile-menu">
+      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 ${isMenuOpen ? 'max-h-[500px]' : 'max-h-0'}`} id="mobile-menu">
         <nav className="px-2 pt-2 pb-4 space-y-1">
            <div>
              <button onClick={() => setIsMobileProductsOpen(!isMobileProductsOpen)} className={`${navLinkClasses} flex justify-between items-center w-full text-left`}>
@@ -187,12 +188,12 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
                   </div>
               </div>
               <div className="mt-3 px-2 space-y-1">
-                  <button onClick={() => { onNavigateToDashboard('profile'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700">My Profile</button>
-                  <button onClick={() => { onNavigateToDashboard('reviews'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700">My Reviews</button>
-                  <button onClick={() => { onNavigateToDashboard('billing'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700">Billing</button>
-                  <button onClick={() => { onNavigateToDashboard('review-settings'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700">Settings</button>
+                  <button onClick={() => { onNavigateToDashboard('profile'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light">My Profile</button>
+                  <button onClick={() => { onNavigateToDashboard('reviews'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light">My Reviews</button>
+                  <button onClick={() => { onNavigateToDashboard('billing'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light">Billing</button>
+                  <button onClick={() => { onNavigateToDashboard('review-settings'); setIsMenuOpen(false); }} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light">Settings</button>
                   <div className="h-px bg-gray-200 dark:bg-gray-700 my-1 mx-3"></div>
-                  <button onClick={onLogout} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <button onClick={onLogout} className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:text-primary dark:hover:text-primary-light">
                       Logout
                   </button>
               </div>

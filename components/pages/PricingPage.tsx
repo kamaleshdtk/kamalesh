@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 
 interface PricingPageProps {
@@ -7,7 +5,7 @@ interface PricingPageProps {
 }
 
 const CheckIcon = () => (
-    <svg className="h-5 w-5 text-accent-teal" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+    <svg className="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
     </svg>
 );
@@ -70,16 +68,16 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
             </div>
             
             <div className="text-center">
-                <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-gray-900 dark:text-white">
+                <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-text-primary dark:text-white">
                     Find the perfect plan
                 </h1>
-                <p className="mt-4 text-md sm:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+                <p className="mt-4 text-md sm:text-lg text-text-secondary dark:text-gray-400 max-w-2xl mx-auto">
                     Start for free, then upgrade to a plan that fits your needs. All plans come with our core analysis features.
                 </p>
             </div>
             
             <div className="mt-10 flex justify-center items-center gap-4">
-                <span className={`font-semibold ${billingCycle === 'monthly' ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`}>Monthly</span>
+                <span className={`font-semibold ${billingCycle === 'monthly' ? 'text-primary' : 'text-text-secondary dark:text-gray-400'}`}>Monthly</span>
                 <label htmlFor="billing-toggle" className="relative inline-flex items-center cursor-pointer">
                     <input
                         type="checkbox"
@@ -88,16 +86,16 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                         checked={billingCycle === 'yearly'}
                         onChange={() => setBillingCycle(billingCycle === 'monthly' ? 'yearly' : 'monthly')}
                     />
-                    <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary-light peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                    <div className="w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-focus:ring-2 peer-focus:ring-primary-light peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 </label>
-                <span className={`font-semibold ${billingCycle === 'yearly' ? 'text-primary' : 'text-gray-500 dark:text-gray-400'}`}>
-                    Yearly <span className="text-sm font-medium text-accent-teal">(Save 13%)</span>
+                <span className={`font-semibold ${billingCycle === 'yearly' ? 'text-primary' : 'text-text-secondary dark:text-gray-400'}`}>
+                    Yearly <span className="text-sm font-medium text-green-600">(Save 13%)</span>
                 </span>
             </div>
             
             <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {plans.map((plan) => (
-                    <div key={plan.name} className={`relative bg-white dark:bg-gray-800 rounded-2xl shadow-soft border p-8 flex flex-col ${plan.isPopular ? 'border-primary' : 'border-gray-200/80 dark:border-gray-700'}`}>
+                    <div key={plan.name} className={`relative bg-white dark:bg-gray-800 border rounded-2xl p-8 flex flex-col shadow-lg ${plan.isPopular ? 'border-primary' : 'border-gray-200 dark:border-gray-700'}`}>
                         {plan.isPopular && (
                             <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
                                 MOST POPULAR
@@ -107,11 +105,11 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                         <p className="text-text-secondary dark:text-gray-400 mt-2 flex-grow">{plan.description}</p>
                         
                         <div className="mt-6">
-                            <span className="text-5xl font-black text-gray-900 dark:text-white">
+                            <span className="text-5xl font-black text-text-primary dark:text-white">
                                 {typeof plan.price[billingCycle] === 'number' ? `$${plan.price[billingCycle]}` : plan.price[billingCycle]}
                             </span>
                              {typeof plan.price[billingCycle] === 'number' && (
-                                <span className="text-lg font-semibold text-gray-500 dark:text-gray-400">
+                                <span className="text-lg font-semibold text-text-secondary dark:text-gray-400">
                                     / {billingCycle === 'monthly' ? 'mo' : 'yr'}
                                 </span>
                             )}
@@ -127,8 +125,8 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
                         </ul>
 
                         <div className="mt-10">
-                             <button className={`w-full py-3 px-6 rounded-lg font-semibold transition-colors
-                                ${plan.isPopular ? 'bg-primary text-white hover:bg-primary-light' : 'bg-gray-100 dark:bg-gray-700 text-primary dark:text-primary-light hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
+                             <button className={`w-full py-3 px-6 rounded-lg font-semibold transition-all duration-200
+                                ${plan.isPopular ? 'text-white bg-primary hover:bg-primary-light' : 'bg-gray-100 dark:bg-gray-700 text-primary dark:text-primary-light hover:bg-gray-200 dark:hover:bg-gray-600'}`}>
                                  {plan.cta}
                              </button>
                         </div>

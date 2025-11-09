@@ -6,24 +6,38 @@ import { useToast } from '../../contexts/ToastContext';
 import { getDisplayName } from '../../utils';
 import CategoryIcon from '../shared/CategoryIcon';
 
+const getScoreColor = (s: number) => {
+  if (s >= 85) return 'text-green-500 dark:text-green-400';
+  if (s >= 60) return 'text-orange-500 dark:text-orange-400';
+  return 'text-red-500 dark:text-red-400';
+};
+
+const getScoreInfo = (score: number, reviewType: ReviewType) => {
+    const subject = reviewType === ReviewType.UI ? 'user interface' : 'user experience';
+    if (score >= 85) {
+        return {
+            title: 'Excellent',
+            description: `Based on our analysis, your ${subject} is performing exceptionally well, adhering to best practices.`
+        };
+    }
+    if (score >= 60) {
+        return {
+            title: 'Good',
+            description: `Based on our analysis, your ${subject} is performing well, with some minor areas for improvement.`
+        };
+    }
+    return {
+        title: 'Needs Improvement',
+        description: `Based on our analysis, your ${subject} has several key areas that require improvement.`
+    };
+}
+
 const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
-  const radius = 110;
-  const stroke = 10;
+  const radius = 90;
+  const stroke = 12;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (score / 100) * circumference;
-
-  const getScoreColor = (s: number) => {
-    if (s >= 85) return 'text-green-600 dark:text-green-400';
-    if (s >= 60) return 'text-yellow-500 dark:text-yellow-400';
-    return 'text-red-500 dark:text-red-400';
-  };
-  
-  const getScoreDescription = (s: number) => {
-      if (s >= 85) return 'Excellent';
-      if (s >= 60) return 'Good';
-      return 'Needs Improvement';
-  }
 
   return (
     <div className="relative flex items-center justify-center">
@@ -55,14 +69,11 @@ const ProgressRing: React.FC<{ score: number }> = ({ score }) => {
         />
       </svg>
       <div className="absolute text-center">
-        <span className={`text-7xl font-bold ${getScoreColor(score)}`}>
+        <span className={`text-6xl font-bold ${getScoreColor(score)}`}>
           {score}
         </span>
-        <p className="text-gray-400 dark:text-gray-500 font-semibold text-lg">/ 100</p>
+        <p className="text-gray-500 dark:text-gray-400 font-semibold text-base">/ 100</p>
       </div>
-       <p className={`absolute bottom-[-45px] text-2xl font-bold ${getScoreColor(score)}`}>
-        {getScoreDescription(score)}
-      </p>
     </div>
   );
 };
@@ -74,24 +85,24 @@ const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
             case 'critical': return { pill: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300', border: 'bg-red-500' };
             case 'major': return { pill: 'bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300', border: 'bg-orange-500' };
             case 'minor': return { pill: 'bg-accent-teal/10 text-accent-teal dark:bg-accent-teal/20 dark:text-accent-teal', border: 'bg-accent-teal' };
-            default: return { pill: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300', border: 'bg-gray-400' };
+            default: return { pill: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300', border: 'bg-gray-400' };
         }
     }
     const severityStyles = getSeverityStyles(issue.severity);
 
     return (
-        <div className="relative bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200/80 dark:border-gray-700 overflow-hidden">
+        <div className="relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${severityStyles.border}`}></div>
-            <div className="pl-4">
+            <div className="p-5 pl-8">
                 <div className="flex justify-between items-start mb-2 gap-4">
                     <h4 className="font-bold text-md text-text-primary dark:text-white flex-1">{issue.issueTitle}</h4>
                     <span className={`px-2.5 py-1 text-xs font-semibold rounded-full flex-shrink-0 ${severityStyles.pill}`}>{issue.severity}</span>
                 </div>
-                {issue.relevantLaw && <p className="text-sm font-medium text-primary mb-2">{issue.relevantLaw}</p>}
-                <p className="text-text-secondary dark:text-gray-400 text-sm mb-3">{issue.issueDescription}</p>
-                <div className="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
-                    <p className="text-sm font-semibold text-green-700 dark:text-green-400">Recommendation:</p>
-                    <p className="text-sm text-text-secondary dark:text-gray-300 mt-1">{issue.recommendation}</p>
+                {issue.relevantLaw && <p className="text-sm font-medium text-primary dark:text-primary-light mb-2">{issue.relevantLaw}</p>}
+                <p className="text-text-secondary dark:text-gray-400 text-sm mb-4">{issue.issueDescription}</p>
+                <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg">
+                    <p className="text-sm font-semibold text-text-secondary dark:text-gray-400">Recommendation</p>
+                    <p className="text-sm text-text-primary dark:text-gray-300 mt-1">{issue.recommendation}</p>
                 </div>
             </div>
         </div>
@@ -101,18 +112,12 @@ const IssueCard: React.FC<{ issue: AnalysisIssue }> = ({ issue }) => {
 
 const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onToggle: () => void }> = ({ category, isOpen, onToggle }) => {
   const score = Math.round(category.categoryScore);
-  
-  const getScoreColor = (s: number) => {
-    if (s >= 85) return 'text-green-600 dark:text-green-400';
-    if (s >= 60) return 'text-yellow-500 dark:text-yellow-400';
-    return 'text-red-500 dark:text-red-400';
-  };
 
   return (
     <div className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
         <button
             onClick={onToggle}
-            className="w-full flex justify-between items-center py-5 text-left gap-4"
+            className="w-full flex justify-between items-center p-6 text-left gap-4"
             aria-expanded={isOpen}
         >
             <div className="flex items-center gap-4">
@@ -120,28 +125,28 @@ const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onT
                 <h3 className="text-lg font-bold text-text-primary dark:text-white">{category.categoryName}</h3>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <span className={`text-lg font-bold w-16 text-right ${getScoreColor(score)}`}>{score}/100</span>
+              <span className={`text-lg font-bold w-20 text-right ${getScoreColor(score)}`}>{score}/100</span>
                <svg
-                  className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+                  className={`w-5 h-5 text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                   fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
         </button>
-        <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[2000px] pb-6' : 'max-h-0'}`}>
-             <div className="space-y-4 pl-10">
+        <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isOpen ? 'max-h-[2000px]' : 'max-h-0'}`}>
+             <div className="space-y-4 px-6 pb-6">
                   {category.issues && category.issues.length > 0 ? (
                     category.issues.map((issue, index) => <IssueCard key={index} issue={issue} />)
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-center py-8 px-4 bg-green-50/50 dark:bg-green-900/20 rounded-xl border border-green-200/60 dark:border-green-800/50 shadow-soft">
+                    <div className="flex flex-col items-center justify-center text-center py-8 px-4 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-200 dark:border-green-800/50">
                         <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-300">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
                         <p className="mt-4 font-semibold text-green-800 dark:text-green-200">Excellent! No issues found.</p>
-                        <p className="text-sm text-green-700 dark:text-green-400">This category meets all best practice guidelines.</p>
+                        <p className="text-sm text-green-600 dark:text-green-400">This category meets all best practice guidelines.</p>
                     </div>
                   )}
             </div>
@@ -161,6 +166,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
   const analysisTitle = isUiReview ? 'UI Analysis' : 'UX Analysis';
   const categoryAnalyses = isUiReview ? results.uiCategoryAnalyses : results.uxCategoryAnalyses;
   const overallScore = isUiReview ? results.uiScore : results.uxScore;
+  const scoreInfo = getScoreInfo(overallScore, review_type);
 
   useEffect(() => {
     // Open the first accordion item by default
@@ -190,7 +196,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);
                 doc.setFontSize(9);
-                doc.setTextColor('#7E57FF');
+                doc.setTextColor('#4F46E5');
                 doc.setFont('helvetica', 'bold');
                 doc.text('UXRay AI Report', margin, 10);
                 doc.setFontSize(9);
@@ -316,7 +322,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
                   if (issue.relevantLaw) {
                       doc.setFont('helvetica', 'italic');
                       doc.setFontSize(10);
-                      doc.setTextColor('#7E57FF');
+                      doc.setTextColor('#4F46E5');
                       yPos = addWrappedText(`Relevant Principle: ${issue.relevantLaw}`, margin + 5, yPos, contentWidth - 10) + 3;
                   }
 
@@ -350,73 +356,80 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-form-soft p-6 sm:p-8 border border-gray-200/60 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-8">
-              <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                Back to Home
-              </button>
-              <div className="flex items-center gap-3">
-                <button 
-                  onClick={handleExportPDF}
-                  disabled={isExporting}
-                  className="flex items-center gap-2 text-sm text-white bg-primary hover:bg-primary-light px-4 py-2 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-wait"
-                >
-                  {isExporting ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Exporting...
-                      </>
-                  ) : (
-                      <>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                          </svg>
-                          Export Report
-                      </>
-                  )}
-                </button>
-              </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="flex flex-wrap gap-4 items-center justify-between mb-8">
+          <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+            Back to Home
+          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleExportPDF}
+              disabled={isExporting}
+              className="flex items-center gap-2 text-sm text-white font-medium bg-primary hover:bg-primary-light transition-all duration-200 px-4 py-2 rounded-lg disabled:opacity-50 disabled:cursor-wait"
+            >
+              {isExporting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Exporting...
+                  </>
+              ) : (
+                  <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      Export Report
+                  </>
+              )}
+            </button>
           </div>
+      </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-            <div className="lg:col-span-2">
-                <h2 className="text-2xl font-bold mb-4 dark:text-white">Design Preview</h2>
-                <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-xl shadow-soft w-full border border-gray-200/80 dark:border-gray-700" />
-                <div className="mt-6 bg-gray-50/80 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200/60 dark:border-gray-700">
-                    <h3 className="font-bold text-lg mb-2 dark:text-white">Overall Summary</h3>
-                    <p className="text-text-secondary dark:text-gray-300 text-sm">{results.overallSummary}</p>
-                </div>
-            </div>
-            <div className="lg:col-span-3">
-                 <div className="bg-gray-50/80 dark:bg-gray-900/50 rounded-2xl py-12 px-8 flex flex-col items-center justify-center min-h-[400px] border border-gray-200/60 dark:border-gray-700">
-                     <h2 className="text-2xl font-bold mb-8 text-center dark:text-white">Overall {isUiReview ? 'UI' : 'UX'} Score</h2>
-                     <ProgressRing score={overallScore} />
-                     <p className="text-center text-text-secondary dark:text-gray-400 mt-16 max-w-xs">
-                         Based on our analysis, your user {isUiReview ? 'interface is' : 'experience is'} performing well.
-                     </p>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+                <h2 className="text-xl font-bold mb-4 text-text-primary dark:text-white">Design Preview</h2>
+                 <div className="bg-black rounded-lg p-2">
+                    <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-md w-full" />
                  </div>
             </div>
-          </div>
-          
-          <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{analysisTitle} breakdown</h2>
-              {categoryAnalyses && categoryAnalyses.length > 0 ? (
-                <div className="grid grid-cols-1">
-                  {categoryAnalyses.map((category) => (
-                      <AccordionItem 
-                        key={category.categoryName} 
-                        category={category}
-                        isOpen={openAccordion === category.categoryName}
-                        onToggle={() => handleToggleAccordion(category.categoryName)}
-                      />
-                  ))}
-                </div>
-            ) : (
-                <p className="text-center py-8 text-text-secondary dark:text-gray-400">No analysis data available for this category.</p>
-            )}
-          </div>
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+                <h3 className="font-bold text-lg mb-2 text-text-primary dark:text-white">Overall Summary</h3>
+                <p className="text-text-secondary dark:text-gray-300 text-sm">{results.overallSummary}</p>
+            </div>
+        </div>
+        <div className="lg:col-span-3">
+             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6 flex flex-col items-center justify-center text-center h-full">
+                 <h2 className="text-xl font-bold text-text-primary dark:text-white">Overall {isUiReview ? 'UI' : 'UX'} Score</h2>
+                 <div className="my-6">
+                    <ProgressRing score={overallScore} />
+                 </div>
+                 <p className={`text-xl font-bold ${getScoreColor(overallScore)}`}>
+                    {scoreInfo.title}
+                 </p>
+                 <p className="text-text-secondary dark:text-gray-400 mt-2 max-w-xs">
+                    {scoreInfo.description}
+                 </p>
+             </div>
+        </div>
+      </div>
+      
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold text-text-primary dark:text-white mb-4">{analysisTitle} breakdown</h2>
+          {categoryAnalyses && categoryAnalyses.length > 0 ? (
+            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow">
+              {categoryAnalyses.map((category) => (
+                  <AccordionItem 
+                    key={category.categoryName} 
+                    category={category}
+                    isOpen={openAccordion === category.categoryName}
+                    onToggle={() => handleToggleAccordion(category.categoryName)}
+                  />
+              ))}
+            </div>
+        ) : (
+            <p className="text-center py-8 text-gray-400">No analysis data available for this category.</p>
+        )}
       </div>
     </div>
   );

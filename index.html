@@ -26,42 +26,44 @@
               sans: ['Inter', 'sans-serif'],
             },
             colors: {
-              'primary': '#6C4DFF',
-              'primary-light': '#8A6DFF',
+              'primary': '#4F46E5',
+              'primary-light': '#6366F1',
               'text-primary': '#111827',
-              'text-secondary': '#4B5563',
-              'accent-teal': '#2DD4BF',
-              'sidebar-hover': '#F8F8FA',
+              'text-secondary': '#6B7280',
+              'accent-teal': '#14B8A6',
               'danger-bg': '#FFF8F8',
               'danger-border': '#FFDFDF',
               'danger-text': '#D72F2F',
-            },
-            boxShadow: {
-              'soft': '0 4px 20px -10px rgba(0,0,0,0.06)',
-              'form-soft': '0 8px 32px rgba(0, 0, 0, 0.05)',
+              'orange': {
+                100: '#FFF7ED',
+                500: '#F97316',
+                800: '#9A3412',
+              },
             },
             animation: {
               'fade-in': 'fadeIn 0.5s ease-in-out',
               'pulse-glow': 'pulse-glow 4s ease-in-out infinite',
-              'orbit': 'orbit 10s linear infinite',
-              'orbit-reverse': 'orbit-reverse 15s linear infinite',
+              'orbit': 'orbit 10s ease-in-out infinite',
+              'orbit-reverse': 'orbit-reverse 15s ease-in-out infinite',
             },
             keyframes: {
               fadeIn: {
-                '0%': { opacity: 0 },
-                '100%': { opacity: 1 },
+                '0%': { opacity: 0, transform: 'translateY(5px)' },
+                '100%': { opacity: 1, transform: 'translateY(0)' },
               },
               'pulse-glow': {
-                '0%, 100%': { boxShadow: '0 0 20px rgba(108, 77, 255, 0.4), 0 0 30px rgba(108, 77, 255, 0.3)', opacity: 0.8 },
-                '50%': { boxShadow: '0 0 40px rgba(108, 77, 255, 0.6), 0 0 60px rgba(108, 77, 255, 0.5)', opacity: 1 },
+                '0%, 100%': { boxShadow: '0 0 20px rgba(79, 70, 229, 0.4), 0 0 30px rgba(79, 70, 229, 0.3)', opacity: 0.8 },
+                '50%': { boxShadow: '0 0 40px rgba(79, 70, 229, 0.6), 0 0 60px rgba(79, 70, 229, 0.5)', opacity: 1 },
               },
               orbit: {
-                '0%': { transform: 'rotate(0deg) translateX(100px) rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg) translateX(100px) rotate(-360deg)' },
+                '0%': { transform: 'rotate(0deg) translateX(100px) rotate(0deg)', opacity: 0.7 },
+                '50%': { transform: 'rotate(180deg) translateX(100px) rotate(-180deg)', opacity: 1 },
+                '100%': { transform: 'rotate(360deg) translateX(100px) rotate(-360deg)', opacity: 0.7 },
               },
               'orbit-reverse': {
-                '0%': { transform: 'rotate(0deg) translateX(130px) rotate(0deg)' },
-                '100%': { transform: 'rotate(-360deg) translateX(130px) rotate(360deg)' },
+                '0%': { transform: 'rotate(0deg) translateX(130px) rotate(0deg)', opacity: 0.7 },
+                '50%': { transform: 'rotate(-180deg) translateX(130px) rotate(180deg)', opacity: 1 },
+                '100%': { transform: 'rotate(-360deg) translateX(130px) rotate(360deg)', opacity: 0.7 },
               }
             }
           }
@@ -81,7 +83,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 dark:bg-[#111111]">
+  <body class="bg-gray-50 dark:bg-gray-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
