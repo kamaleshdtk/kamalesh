@@ -200,6 +200,7 @@ const AppContent: React.FC = () => {
     submission: Submission,
     reviewType: ReviewType,
     ignoreCache: boolean,
+    attemptFullPage: boolean
   ) => {
     setCurrentPage('loading');
     setScreenshotFailureInfo(null);
@@ -211,7 +212,7 @@ const AppContent: React.FC = () => {
         let inputValue: string;
 
         if (submission.type === 'URL') {
-            image = await urlToDataUrl(submission.value);
+            image = await urlToDataUrl(submission.value, attemptFullPage);
             inputType = 'URL';
             inputValue = submission.value;
         } else {

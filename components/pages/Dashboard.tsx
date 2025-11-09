@@ -8,7 +8,7 @@ type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File 
 interface DashboardProps {
   reports: AnalysisReport[];
   onViewReport: (report: AnalysisReport) => void;
-  onSubmit: (submission: Submission, reviewType: ReviewType, ignoreCache: boolean) => void;
+  onSubmit: (submission: Submission, reviewType: ReviewType, ignoreCache: boolean, attemptFullPage: boolean) => void;
 }
 
 const AnalysisForm: React.FC<{
@@ -18,6 +18,7 @@ const AnalysisForm: React.FC<{
   const [url, setUrl] = useState('');
   const [analysisType, setAnalysisType] = useState<ReviewType>(ReviewType.UI);
   const [ignoreCache, setIgnoreCache] = useState(false);
+  const [isFullPageAttempt, setIsFullPageAttempt] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
@@ -35,6 +36,15 @@ const AnalysisForm: React.FC<{
   const handleFileChange = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const allowedTypes = ['image/png', 'image/jpeg', 'image/webp'];
+      if (!allowedTypes.includes(file.type)) {
+        addToast("Invalid file type. Please upload a PNG, JPG, or WEBP.", 'error');
+        return;
+      }
+      if (file.size < 2048) { // 2KB minimum
+        addToast("Image is too small. Please upload a larger screenshot.", 'error');
+        return;
+      }
       if(file.size > 15 * 1024 * 1024) { // 15MB limit
         addToast("File size exceeds 15MB. Please upload a smaller image.", 'error');
         return;
@@ -67,9 +77,9 @@ const AnalysisForm: React.FC<{
     }
     
     if (imageFile) {
-        onSubmit({ type: 'Image', value: imageFile }, analysisType, ignoreCache);
+        onSubmit({ type: 'Image', value: imageFile }, analysisType, ignoreCache, false);
     } else if (url) {
-        onSubmit({ type: 'URL', value: url }, analysisType, ignoreCache);
+        onSubmit({ type: 'URL', value: url }, analysisType, ignoreCache, isFullPageAttempt);
     }
   };
   
@@ -142,23 +152,40 @@ const AnalysisForm: React.FC<{
                     </div>
                 </div>
             </div>
-             <div className="mt-4 flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 px-2">
-                <p className="text-xs text-text-secondary dark:text-gray-500 text-center sm:text-left">
+             <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 px-2">
+                <p className="text-sm text-text-secondary dark:text-gray-500 max-w-md">
                     <strong>Pro Tip:</strong> URL analysis captures the visible area. For a full top-to-bottom review, upload an image.
                 </p>
-                <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 cursor-pointer flex-shrink-0">
-                    <input
-                        type="checkbox"
-                        checked={ignoreCache}
-                        onChange={(e) => setIgnoreCache(e.target.checked)}
-                        className="appearance-none h-4 w-4 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700
-                                   checked:bg-primary checked:border-transparent
-                                   focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-900
-                                   checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27white%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e')]
-                                   checked:bg-center checked:bg-no-repeat"
-                    />
-                    Re-analyze (ignore cache)
-                </label>
+                <div className="flex items-center gap-6 flex-shrink-0">
+                     <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={isFullPageAttempt}
+                            onChange={(e) => setIsFullPageAttempt(e.target.checked)}
+                            disabled={!!imageFile}
+                            className="appearance-none h-4 w-4 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700
+                                    checked:bg-primary checked:border-transparent
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-900
+                                    disabled:opacity-50 disabled:cursor-not-allowed
+                                    checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27white%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e')]
+                                    checked:bg-center checked:bg-no-repeat"
+                        />
+                        Attempt full-page analysis (Beta)
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={ignoreCache}
+                            onChange={(e) => setIgnoreCache(e.target.checked)}
+                            className="appearance-none h-4 w-4 border border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-700
+                                    checked:bg-primary checked:border-transparent
+                                    focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary dark:focus:ring-offset-gray-900
+                                    checked:bg-[url('data:image/svg+xml,%3csvg viewBox=%270 0 16 16%27 fill=%27white%27 xmlns=%27http://www.w3.org/2000/svg%27%3e%3cpath d=%27M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z%27/%3e%3c/svg%3e')]
+                                    checked:bg-center checked:bg-no-repeat"
+                        />
+                        Re-analyze (ignore cache)
+                    </label>
+                </div>
             </div>
         </form>
     </div>

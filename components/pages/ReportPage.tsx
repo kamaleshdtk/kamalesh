@@ -388,7 +388,12 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
         <div className="lg:col-span-2 space-y-8">
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-                <h2 className="text-xl font-bold mb-4 text-text-primary dark:text-white">Design Preview</h2>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-bold text-text-primary dark:text-white">Design Preview</h2>
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
+                      {results.isFullPage ? 'Full Page' : 'Partial Screenshot'}
+                  </span>
+                </div>
                  <div className="bg-black rounded-lg p-2">
                     <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-md w-full" />
                  </div>

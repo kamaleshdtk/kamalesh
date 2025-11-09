@@ -108,7 +108,7 @@ const convertGifToPng = (blob: Blob): Promise<{ data: string; mimeType: string }
 };
 
 
-export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeType: string }> => {
+export const urlToDataUrl = async (url: string, attemptFullPage: boolean): Promise<{ data: string; mimeType: string }> => {
   try {
     // Validate and format URL
     let fullUrl = url;
@@ -122,7 +122,8 @@ export const urlToDataUrl = async (url: string): Promise<{ data: string; mimeTyp
         throw new Error("The URL format is invalid. Please check it and try again (e.g., 'example.com').");
     }
 
-    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&h=720`;
+    const height = attemptFullPage ? 2048 : 720;
+    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&h=${height}`;
 
     const response = await fetchWithRetry(screenshotApiUrl);
     

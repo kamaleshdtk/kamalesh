@@ -24,6 +24,7 @@ export interface AnalysisResult {
   isAccessDenied: boolean;
   isErrorPage: boolean;
   isNotUiScreenshot: boolean;
+  isFullPage: boolean;
   uiScore: number; // Overall average score
   uxScore: number; // Overall average score
   overallSummary: string;

@@ -34,6 +34,7 @@ const responseSchema = {
     isAccessDenied: { type: Type.BOOLEAN, description: "True if the image is an access denied/permission error page, otherwise false." },
     isErrorPage: { type: Type.BOOLEAN, description: "True if the image is a generic web error page (e.g., 404 Not Found), otherwise false." },
     isNotUiScreenshot: { type: Type.BOOLEAN, description: "True if the image is NOT a screenshot of a website, app, or UI mockup, but something else like a photo of nature." },
+    isFullPage: { type: Type.BOOLEAN, description: "True if the screenshot appears to be a full page (header to footer), false if it's a partial view." },
     uiScore: { type: Type.NUMBER, description: "Overall UI score from 0 to 100, calculated as the average of all UI category scores." },
     uxScore: { type: Type.NUMBER, description: "Overall UX score from 0 to 100, calculated as the average of all UX category scores." },
     overallSummary: { type: Type.STRING, description: "A brief, two-sentence summary of the key findings." },
@@ -48,7 +49,7 @@ const responseSchema = {
       items: categoryAnalysisSchema(issueSchema), // Simplified to use the same enhanced schema
     },
   },
-  required: ["isCaptcha", "isAccessDenied", "isErrorPage", "isNotUiScreenshot", "uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
+  required: ["isCaptcha", "isAccessDenied", "isErrorPage", "isNotUiScreenshot", "isFullPage", "uiScore", "uxScore", "overallSummary", "uiCategoryAnalyses", "uxCategoryAnalyses"],
 };
 
 
@@ -119,21 +120,28 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
         - If the image matches the Error Page definition, set \`isErrorPage: true\` and STOP. Provide empty/default values for all other fields.
         - If not, set \`isErrorPage: false\` and proceed to the next step.
         
-    **Step 4: UI Content Verification**
+    **Step 4: UI Content & Scope Verification**
 
-    Finally, before the main analysis, verify that the image is actually a user interface.
+    Your final verification step is to confirm the image content is a valid UI and determine its scope.
 
-    - **Definition of NOT a UI Screenshot (Set \`isNotUiScreenshot: true\`):**
-        - The image is a photograph of a real-world scene (e.g., nature, people, animals, objects).
-        - It is an abstract piece of art, a medical scan, a non-UI diagram, or any other image that does not depict a software interface.
-        
-    - **Definition of a UI Screenshot (Set \`isNotUiScreenshot: false\`):**
-        - The image contains clear UI elements from a website, mobile app, desktop application, or a design mockup (e.g., from Figma). This includes buttons, menus, text, navigation bars, icons, windows, etc.
+    - **Part A: UI Content Validation**
+        - **Definition of a VALID UI Screenshot (Set \`isNotUiScreenshot: false\`):**
+            - The image contains clear UI elements from a website, mobile app, or a design mockup. This includes complex interfaces like social media posts (e.g., a Tweet or Instagram post with buttons, text, images), and information-rich web ads. Essentially, if it's designed for user interaction or information consumption within a digital product, it's a valid UI.
+        - **Definition of an INVALID UI Screenshot (Set \`isNotUiScreenshot: true\`):**
+            - The image is a photograph of a real-world scene (e.g., nature, people, animals).
+            - It is a simple banner ad with no interactive elements.
+            - It is any other image that does not depict a software interface.
+        - **Action:** If the image is INVALID, set \`isNotUiScreenshot: true\` and STOP. Provide default/empty values for all other fields. Otherwise, set \`isNotUiScreenshot: false\` and proceed to Part B.
 
-    - **Your Action for Step 4:**
-        - If the image is NOT a UI screenshot, set \`isNotUiScreenshot: true\` and STOP. Provide empty/default values for all other fields.
-        - If it IS a UI screenshot, set \`isNotUiScreenshot: false\` and proceed to the final analysis step.
-
+    - **Part B: Scope Analysis (Only if it's a valid UI)**
+        - **Task:** Determine if the screenshot represents a full page from top to bottom.
+        - **Definition of a Full Page (Set \`isFullPage: true\`):**
+            - The screenshot clearly contains both a main header section (with elements like logo, main navigation) at the top AND a main footer section (with elements like copyright info, contact links, sitemap) at the bottom. The content between them should appear complete.
+        - **Definition of a Partial Page (Set \`isFullPage: false\`):**
+            - The screenshot is missing either a clear header or a clear footer (or both).
+            - It's a close-up of a specific component.
+            - It's an "above-the-fold" view where the footer is not visible.
+        - **Action:** Set the \`isFullPage\` boolean accordingly.
 
     **Step 5: Full Design Analysis**
     
