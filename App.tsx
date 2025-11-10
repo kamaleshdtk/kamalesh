@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { AnalysisReport, ReviewType } from './types';
 import { analyzeDesign } from './services/geminiService';
@@ -21,12 +22,6 @@ export interface UserProfile {
   email: string;
   avatar: string;
 }
-export interface ReviewSettings {
-  uiStrictness: 'Soft' | 'Balanced' | 'Strict';
-  uxStrictness: 'Soft' | 'Balanced' | 'Strict';
-  tone: 'Friendly' | 'Professional' | 'Direct';
-  reportFormat: boolean; // true for Detailed, false for Summary
-}
 export interface NotificationSettings {
   emailOnComplete: boolean;
   slackOnComplete: boolean;
@@ -34,7 +29,15 @@ export interface NotificationSettings {
   productUpdates: boolean;
 }
 
-export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'review-settings' | 'notifications' | 'security' | 'help';
+// FIX: Added missing ReviewSettings interface to resolve import error in ReviewSettingsPanel.tsx.
+export interface ReviewSettings {
+  uiStrictness: 'Soft' | 'Balanced' | 'Strict';
+  uxStrictness: 'Soft' | 'Balanced' | 'Strict';
+  tone: 'Friendly' | 'Professional' | 'Direct';
+  reportFormat: boolean;
+}
+
+export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'notifications' | 'security' | 'help';
 export type Theme = 'light' | 'dark' | 'system';
 export type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
 
@@ -61,13 +64,6 @@ const AppContent: React.FC = () => {
     name: 'Hobby',
     reviewsUsed: 0,
     reviewsLimit: 5,
-  });
-
-  const [reviewSettings, setReviewSettings] = useState<ReviewSettings>({
-    uiStrictness: 'Balanced',
-    uxStrictness: 'Balanced',
-    tone: 'Professional',
-    reportFormat: true,
   });
 
   const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>({
@@ -109,10 +105,6 @@ const AppContent: React.FC = () => {
   // --- Handlers for State Updates ---
   const handleUpdateUser = (updates: Partial<UserProfile>) => {
     setUser(prev => ({ ...prev, ...updates }));
-  };
-  
-  const handleUpdateReviewSettings = (updates: Partial<ReviewSettings>) => {
-    setReviewSettings(prev => ({ ...prev, ...updates }));
   };
   
   const handleUpdateNotificationSettings = (updates: Partial<NotificationSettings>) => {
@@ -323,8 +315,6 @@ const AppContent: React.FC = () => {
         return <ProfileDashboardPage 
                   user={user} 
                   onUpdateUser={handleUpdateUser}
-                  reviewSettings={reviewSettings}
-                  onUpdateReviewSettings={handleUpdateReviewSettings}
                   notificationSettings={notificationSettings}
                   onUpdateNotificationSettings={handleUpdateNotificationSettings}
                   onLogout={handleLogout} 
