@@ -11,6 +11,7 @@ import PricingPage from './components/pages/PricingPage';
 import AccessDeniedPage from './components/pages/AccessDeniedPage';
 import Footer from './components/Footer';
 import ScreenshotFallbackModal from './components/pages/ScreenshotFallbackModal';
+import UpgradeModal from './components/pages/UpgradeModal';
 import { ToastProvider, useToast } from './contexts/ToastContext';
 import { simpleHash, urlToDataUrl, fileToDataUrl, resizeImage } from './utils';
 
@@ -33,14 +34,6 @@ export interface NotificationSettings {
   productUpdates: boolean;
 }
 
-
-// Mock user plan data
-const userPlan = {
-  name: 'Hobby',
-  reviewsUsed: 0,
-  reviewsLimit: 5,
-};
-
 export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'review-settings' | 'notifications' | 'security' | 'help';
 export type Theme = 'light' | 'dark' | 'system';
 export type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
@@ -55,12 +48,19 @@ const AppContent: React.FC = () => {
 
   const [screenshotFailureInfo, setScreenshotFailureInfo] = useState<{ reason: string; url: string; reviewType: ReviewType } | null>(null);
   const [urlSubmissionError, setUrlSubmissionError] = useState<{ url: string; reviewType: ReviewType; reason: string } | null>(null);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   // --- State for User and Settings ---
   const [user, setUser] = useState<UserProfile>({
     name: 'Demo User',
     email: 'demo@uxray.ai',
     avatar: `https://i.pravatar.cc/150?u=demo-user`,
+  });
+  
+  const [userPlan, setUserPlan] = useState({
+    name: 'Hobby',
+    reviewsUsed: 0,
+    reviewsLimit: 5,
   });
 
   const [reviewSettings, setReviewSettings] = useState<ReviewSettings>({
@@ -153,7 +153,7 @@ const AppContent: React.FC = () => {
     inputType: 'URL' | 'Image',
     inputValue: string,
     ignoreCache: boolean
-  ) => {
+  ): Promise<boolean> => {
     const resizedImage = await resizeImage(image.data, image.mimeType);
 
     const cacheKey = `report-cache-${reviewType}-${simpleHash(resizedImage.data)}`;
@@ -168,7 +168,7 @@ const AppContent: React.FC = () => {
           if (!reports.some(r => r.id === cachedReport.id)) {
             setReports(prev => [cachedReport, ...prev]);
           }
-          return; // End here for cache hit
+          return false; // End here for cache hit
         }
     }
 
@@ -193,6 +193,7 @@ const AppContent: React.FC = () => {
     setSelectedReport(newReport);
     setCurrentPage('report');
     addToast('Analysis complete! Report successfully generated.', 'success');
+    return true;
   }, [addToast, reports]);
 
 
@@ -202,6 +203,11 @@ const AppContent: React.FC = () => {
     ignoreCache: boolean,
     attemptFullPage: boolean
   ) => {
+    if (userPlan.reviewsUsed >= userPlan.reviewsLimit) {
+        navigateToPricing();
+        return;
+    }
+
     setCurrentPage('loading');
     setScreenshotFailureInfo(null);
     setUrlSubmissionError(null);
@@ -221,13 +227,17 @@ const AppContent: React.FC = () => {
             inputValue = image.name || 'Uploaded Image';
         }
 
-        await runAnalysisAndDisplayReport(
+        const isNewAnalysis = await runAnalysisAndDisplayReport(
             image,
             reviewType,
             inputType,
             inputValue,
             ignoreCache,
         );
+
+        if (isNewAnalysis) {
+            setUserPlan(prev => ({...prev, reviewsUsed: prev.reviewsUsed + 1}));
+        }
 
     } catch (err: any) {
         console.error(err);
@@ -243,15 +253,20 @@ const AppContent: React.FC = () => {
             setCurrentPage('access-denied');
         } else {
             // For direct image uploads, also show the error page for consistency.
-            setUrlSubmissionError({
-                url: (submission.value as File).name,
-                reviewType,
-                reason: errorMessage,
-            });
-            setCurrentPage('access-denied');
+            if (err.message.includes('not appear to be a website')) {
+                setUrlSubmissionError({
+                    url: (submission.value as File).name,
+                    reviewType,
+                    reason: errorMessage,
+                });
+                setCurrentPage('access-denied');
+            } else {
+                addToast(errorMessage, 'error');
+                setCurrentPage('home');
+            }
         }
     }
-  }, [addToast, runAnalysisAndDisplayReport]);
+  }, [addToast, runAnalysisAndDisplayReport, userPlan]);
 
   const handleManualUploadRequest = () => {
     if (urlSubmissionError) {
@@ -268,11 +283,18 @@ const AppContent: React.FC = () => {
 
   const handleFallbackSubmit = (manualFile: File) => {
     if (screenshotFailureInfo) {
+      if (userPlan.reviewsUsed >= userPlan.reviewsLimit) {
+        setScreenshotFailureInfo(null);
+        setIsUpgradeModalOpen(true);
+        return;
+      }
       const { reviewType, url } = screenshotFailureInfo;
       setCurrentPage('loading');
       setScreenshotFailureInfo(null);
       fileToDataUrl(manualFile).then(image => {
-        runAnalysisAndDisplayReport(image, reviewType, 'URL', url, true);
+        runAnalysisAndDisplayReport(image, reviewType, 'URL', url, true).then(isNew => {
+            if (isNew) setUserPlan(prev => ({...prev, reviewsUsed: prev.reviewsUsed + 1}));
+        });
       }).catch(err => {
         addToast('Failed to process the uploaded file.', 'error');
         setCurrentPage('home');
@@ -291,11 +313,12 @@ const AppContent: React.FC = () => {
                   reports={reports}
                   onViewReport={handleViewReport}
                   onSubmit={handleSubmit}
+                  userPlan={userPlan}
                 />;
       case 'loading':
         return <LoadingScreen />;
       case 'report':
-        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} />;
+        return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} userPlan={userPlan} />;
       case 'dashboard':
         return <ProfileDashboardPage 
                   user={user} 
@@ -324,6 +347,7 @@ const AppContent: React.FC = () => {
                 reports={reports}
                 onViewReport={handleViewReport}
                 onSubmit={handleSubmit}
+                userPlan={userPlan}
               />;
       default:
         return <AuthPage onLogin={handleLogin} />;
@@ -346,6 +370,15 @@ const AppContent: React.FC = () => {
           reason={screenshotFailureInfo.reason}
         />
       )}
+       <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onUpgrade={() => {
+          navigateToPricing();
+          setIsUpgradeModalOpen(false);
+        }}
+        userPlan={userPlan}
+      />
     </div>
   );
 };

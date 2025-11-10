@@ -14,6 +14,7 @@ interface BillingPanelProps {
 const BillingPanel: React.FC<BillingPanelProps> = ({ plan, onUpgrade }) => {
     const usagePercentage = plan.reviewsLimit > 0 ? (plan.reviewsUsed / plan.reviewsLimit) * 100 : 0;
     const { addToast } = useToast();
+    const hasCredits = plan.reviewsUsed < plan.reviewsLimit;
 
     const invoices: any[] = [];
 
@@ -43,10 +44,22 @@ const BillingPanel: React.FC<BillingPanelProps> = ({ plan, onUpgrade }) => {
             <SectionCard title="Usage" description={`You have used ${plan.reviewsUsed} of your ${plan.reviewsLimit} reviews this month.`}>
                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                     <div 
-                        className="bg-primary h-2.5 rounded-full" 
+                        className="bg-primary h-2.5 rounded-full transition-all duration-500" 
                         style={{ width: `${usagePercentage}%` }}
                     ></div>
                 </div>
+                {!hasCredits && (
+                    <div className="mt-4 p-4 text-center bg-orange-100/50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-500/30 rounded-lg">
+                        <p className="font-semibold text-orange-800 dark:text-orange-200">You've used all your credits!</p>
+                        <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">To continue analyzing designs, please upgrade your plan.</p>
+                        <button 
+                            onClick={onUpgrade} 
+                            className="mt-3 px-4 py-2 text-sm font-semibold text-white bg-primary hover:bg-primary-light rounded-lg transition-colors"
+                        >
+                            Upgrade Your Plan
+                        </button>
+                    </div>
+                )}
             </SectionCard>
 
             <SectionCard title="Payment Method">

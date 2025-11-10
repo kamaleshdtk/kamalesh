@@ -10,11 +10,13 @@ interface DashboardProps {
   reports: AnalysisReport[];
   onViewReport: (report: AnalysisReport) => void;
   onSubmit: (submission: Submission, reviewType: ReviewType, ignoreCache: boolean, attemptFullPage: boolean) => void;
+  userPlan: { name: string; reviewsUsed: number; reviewsLimit: number; };
 }
 
 const AnalysisForm: React.FC<{
     onSubmit: DashboardProps['onSubmit'];
-}> = ({ onSubmit }) => {
+    userPlan: DashboardProps['userPlan'];
+}> = ({ onSubmit, userPlan }) => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [url, setUrl] = useState('');
@@ -249,7 +251,7 @@ const NoResultsState: React.FC = () => (
 );
 
 
-const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }) => {
+const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit, userPlan }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<'All' | ReviewType.UI | ReviewType.UX>('All');
@@ -288,7 +290,7 @@ const Dashboard: React.FC<DashboardProps> = ({ reports, onViewReport, onSubmit }
             <p className="mt-6 text-md sm:text-lg lg:text-xl text-text-secondary dark:text-gray-400 max-w-3xl mx-auto">
                 Upload a screenshot or paste a URL to have your design analyzed by our expert AI in seconds. Stop guessing, start improving.
             </p>
-            <AnalysisForm onSubmit={onSubmit} />
+            <AnalysisForm onSubmit={onSubmit} userPlan={userPlan} />
           </div>
       </div>
 
