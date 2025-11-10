@@ -22,6 +22,7 @@ const PricingPage: React.FC<PricingPageProps> = ({ onBack }) => {
             features: [
                 '5 analyses per month',
                 'Standard UI/UX checks',
+                'PDF report exports',
                 'Limited history access',
                 'Community support',
             ],

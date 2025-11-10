@@ -62,7 +62,7 @@ const ProfileDashboardPage: React.FC<ProfileDashboardPageProps> = ({
         : 'Manage your account and security.';
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16 sm:pb-24">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-16 sm:pb-24">
             <div className="mb-8">
                  <h1 className="text-3xl font-bold text-text-primary dark:text-white mb-1">{pageTitle}</h1>
                  <p className="text-base text-text-secondary dark:text-gray-400">{pageSubtitle}</p>
