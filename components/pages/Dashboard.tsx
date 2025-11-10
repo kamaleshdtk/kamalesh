@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, ChangeEvent, useEffect, useMemo }
 import { AnalysisReport, ReviewType } from '../../types';
 import ReportCard from '../shared/ReportCard';
 import { useToast } from '../../contexts/ToastContext';
-import { getDisplayName } from '../../utils';
+import { getDisplayName, fileToDataUrl, dataUrlToFile } from '../../utils';
 
 type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
 
@@ -34,6 +34,67 @@ const AnalysisForm: React.FC<{
       }
     };
   }, [imagePreviewUrl]);
+
+  // Restore session from localStorage
+  useEffect(() => {
+    const savedDraftJSON = localStorage.getItem('designAudit-draft');
+    if (savedDraftJSON) {
+      try {
+        const savedDraft = JSON.parse(savedDraftJSON);
+        if (savedDraft.url) {
+          setUrl(savedDraft.url);
+        } else if (savedDraft.image) {
+          const file = dataUrlToFile(savedDraft.image.data, savedDraft.image.name);
+          if (file) {
+            setImageFile(file);
+            setImagePreviewUrl(URL.createObjectURL(file));
+          }
+        }
+        if (savedDraft.analysisType) {
+          setAnalysisType(savedDraft.analysisType);
+        }
+        addToast('Restored your previous session!', 'success');
+      } catch (error) {
+        console.error('Failed to parse saved draft:', error);
+        localStorage.removeItem('designAudit-draft');
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addToast]);
+
+  // Save session to localStorage
+  useEffect(() => {
+    const saveDraft = async () => {
+      try {
+        if (imageFile) {
+          const imageData = await fileToDataUrl(imageFile);
+          const draft = {
+            image: {
+              data: imageData.data,
+              name: imageData.name,
+              mimeType: imageData.mimeType,
+            },
+            url: '',
+            analysisType,
+          };
+          localStorage.setItem('designAudit-draft', JSON.stringify(draft));
+        } else if (url) {
+          const draft = {
+            image: null,
+            url,
+            analysisType,
+          };
+          localStorage.setItem('designAudit-draft', JSON.stringify(draft));
+        } else {
+          localStorage.removeItem('designAudit-draft');
+        }
+      } catch (error) {
+        console.error("Failed to save draft:", error);
+      }
+    };
+    
+    saveDraft();
+  }, [imageFile, url, analysisType]);
 
   const isValidUrl = (urlString: string): boolean => {
     try {
@@ -106,6 +167,7 @@ const AnalysisForm: React.FC<{
     } else if (url) {
         onSubmit({ type: 'URL', value: url }, analysisType, ignoreCache, isFullPageAttempt);
     }
+    localStorage.removeItem('designAudit-draft');
   };
   
   return (

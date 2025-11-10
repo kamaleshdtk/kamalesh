@@ -55,7 +55,7 @@ const responseSchema = {
 
 const getReviewPrompt = (reviewType: ReviewType): string => {
   const basePrompt = `
-    You are UXRay, an expert UI/UX analysis AI. Your primary goal is to provide a detailed design audit. Before you begin, you must perform four critical safety checks in order.
+    You are Design Audit, an expert UI/UX analysis AI. Your primary goal is to provide a detailed design audit. Before you begin, you must perform four critical safety checks in order.
 
     **Step 1: CAPTCHA Verification**
 

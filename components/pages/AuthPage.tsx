@@ -11,10 +11,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         <div className="text-center">
             <div className="flex justify-center items-center gap-2 mb-4">
                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10.2857 2C9.57143 2 8.99999 2.57143 8.99999 3.28571C8.99999 4 9.57143 4.57143 10.2857 4.57143C12.4286 4.57143 14.1429 6.28571 14.1429 8.42857C14.1429 9.57143 13.5714 10.5714 12.7143 11.2857C11.8571 12 11.2857 13.1429 11.2857 14.2857V15.7143C11.2857 16.4286 11.8571 17 12.5714 17C13.2857 17 13.8571 16.4286 13.8571 15.7143V14.2857C13.8571 12.5714 14.7143 11 15.8571 10.1429C17.1429 9.14286 17.8571 7.42857 17.8571 5.71429C17.8571 3.57143 15.7143 2 13.2857 2H10.2857Z" fill="#4F46E5"/>
-                  <path d="M12.5714 20C11.8571 20 11.2857 20.5714 11.2857 21.2857C11.2857 22 11.8571 22.5714 12.5714 22.5714C13.2857 22.5714 13.8571 22 13.8571 21.2857C13.8571 20.5714 13.2857 20 12.5714 20Z" fill="#4F46E5"/>
+                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C13.84 22 15.58 21.5 17.07 20.66V3.34C15.58 2.5 13.84 2 12 2Z" fill="#4F46E5" fillOpacity="0.4"/>
+                  <path d="M12 7C9.24 7 7 9.24 7 12C7 14.76 9.24 17 12 17C14.76 17 17 14.76 17 12C17 9.24 14.76 7 12 7ZM12 15C10.34 15 9 13.66 9 12C9 10.34 10.34 9 12 9C13.66 9 15 10.34 15 12C15 13.66 13.66 15 12 15Z" fill="#4F46E5"/>
                 </svg>
-              <h1 className="text-3xl font-extrabold text-text-primary dark:text-white">UXRay</h1>
+              <h1 className="text-3xl font-extrabold text-text-primary dark:text-white">Design Audit</h1>
             </div>
           <h2 className="text-xl font-bold text-text-primary dark:text-white">Welcome Back</h2>
           <p className="mt-2 text-text-secondary dark:text-gray-400">Sign in to review your designs.</p>

@@ -4,7 +4,7 @@ const teamMembers = [
   {
     name: 'Alex Johnson',
     role: 'Founder & Lead AI Engineer',
-    bio: 'Alex is the visionary behind UXRay, combining a passion for machine learning with a deep understanding of user-centered design principles.',
+    bio: 'Alex is the visionary behind Design Audit, combining a passion for machine learning with a deep understanding of user-centered design principles.',
     avatar: 'https://i.pravatar.cc/150?u=alex-johnson',
     social: {
       twitter: '#',
@@ -34,7 +34,7 @@ const teamMembers = [
    {
     name: 'Olivia Martinez',
     role: 'Lead UI/UX Designer',
-    bio: "Olivia is the creative force behind UXRay's clean and intuitive interface. She believes that great design is not just what it looks like, but how it works.",
+    bio: "Olivia is the creative force behind Design Audit's clean and intuitive interface. She believes that great design is not just what it looks like, but how it works.",
     avatar: 'https://i.pravatar.cc/150?u=olivia-martinez',
     social: {
       twitter: '#',

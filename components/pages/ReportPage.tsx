@@ -198,7 +198,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
                 doc.setFontSize(9);
                 doc.setTextColor('#4F46E5');
                 doc.setFont('helvetica', 'bold');
-                doc.text('UXRay AI Report', margin, 10);
+                doc.text('Design Audit Report', margin, 10);
                 doc.setFontSize(9);
                 doc.setTextColor('#6B7280');
                 doc.setFont('helvetica', 'normal');
@@ -345,7 +345,7 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
         }
         
         addHeaderAndFooter();
-        doc.save(`UXRay-Report-${getDisplayName(report)}.pdf`);
+        doc.save(`DesignAudit-Report-${getDisplayName(report)}.pdf`);
 
     } catch (error) {
         console.error("Error generating native PDF:", error);

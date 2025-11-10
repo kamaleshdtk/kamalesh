@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { AnalysisReport, ReviewType } from './types';
 import { analyzeDesign } from './services/geminiService';
@@ -56,7 +57,7 @@ const AppContent: React.FC = () => {
   // --- State for User and Settings ---
   const [user, setUser] = useState<UserProfile>({
     name: 'Demo User',
-    email: 'demo@uxray.ai',
+    email: 'demo@designaudit.ai',
     avatar: `https://i.pravatar.cc/150?u=demo-user`,
   });
   
