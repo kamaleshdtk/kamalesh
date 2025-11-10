@@ -126,10 +126,14 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
 
     - **Part A: UI Content Validation**
         - **Definition of a VALID UI Screenshot (Set \`isNotUiScreenshot: false\`):**
-            - The image contains clear UI elements from a website, mobile app, or a design mockup. This includes complex interfaces like social media posts (e.g., a Tweet or Instagram post with buttons, text, images), and information-rich web ads. Essentially, if it's designed for user interaction or information consumption within a digital product, it's a valid UI.
+            - The image is a clear screenshot of an entire website, a web application, a mobile application screen, or a detailed UI mockup. It must represent a complete user-facing interface.
         - **Definition of an INVALID UI Screenshot (Set \`isNotUiScreenshot: true\`):**
-            - The image is a photograph of a real-world scene (e.g., nature, people, animals).
-            - It is a simple banner ad with no interactive elements.
+            - **Photographs:** The image is a photograph of a real-world scene (e.g., nature, people, animals).
+            - **Creative Assets:** The image is primarily a creative asset and not an interactive interface. This includes:
+                - Promotional posters or flyers.
+                - Creative ad banners or ad copy.
+                - Individual social media posts (e.g., a single Tweet or Instagram post).
+                - Any other design that is primarily for marketing or content consumption rather than user interaction within a larger application context.
             - It is any other image that does not depict a software interface.
         - **Action:** If the image is INVALID, set \`isNotUiScreenshot: true\` and STOP. Provide default/empty values for all other fields. Otherwise, set \`isNotUiScreenshot: false\` and proceed to Part B.
 

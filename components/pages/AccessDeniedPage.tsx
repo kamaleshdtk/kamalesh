@@ -69,12 +69,14 @@ const AccessDeniedPage: React.FC<AccessDeniedPageProps> = ({ onBack, onUploadMan
           >
             Back to Dashboard
           </button>
-          <button 
-            onClick={onUploadManually} 
-            className="w-full sm:w-auto px-6 py-3 font-semibold text-white bg-primary hover:bg-primary-light rounded-lg transition-colors"
-          >
-            Upload Screenshot Manually
-          </button>
+          {errorCode !== 'IMG' && (
+            <button 
+              onClick={onUploadManually} 
+              className="w-full sm:w-auto px-6 py-3 font-semibold text-white bg-primary hover:bg-primary-light rounded-lg transition-colors"
+            >
+              Upload Screenshot Manually
+            </button>
+          )}
         </div>
       </div>
     </div>

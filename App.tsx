@@ -242,9 +242,13 @@ const AppContent: React.FC = () => {
             });
             setCurrentPage('access-denied');
         } else {
-            // For direct image uploads, a simple toast is sufficient.
-            addToast(errorMessage, 'error');
-            setCurrentPage('home');
+            // For direct image uploads, also show the error page for consistency.
+            setUrlSubmissionError({
+                url: (submission.value as File).name,
+                reviewType,
+                reason: errorMessage,
+            });
+            setCurrentPage('access-denied');
         }
     }
   }, [addToast, runAnalysisAndDisplayReport]);
