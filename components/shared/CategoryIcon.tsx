@@ -11,17 +11,20 @@ const CategoryIcon: React.FC<{ categoryName: string; className?: string }> = ({ 
         ),
         "Color & Contrast": (
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" />
+               <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" />
+               <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v18" />
             </svg>
         ),
         "Typography": (
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 4.5h14.25M8.25 4.5v15M12 4.5v15M4.5 19.5h10.5" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 4.5l-3 15M8.25 4.5l3 15" />
              </svg>
         ),
         "Accessibility": (
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-               <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 9.562a1.125 1.125 0 012.25 0V12m-2.25 0a1.125 1.125 0 002.25 0V9.562" />
+               <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h3m-3 6h3m-3 6h3M5.25 6h.008v.008H5.25V6zm0 6h.008v.008H5.25v-6zm0 6h.008v.008H5.25v-6zM18.75 6h-.008v.008h.008V6zm0 6h-.008v.008h.008v-6zm0 6h-.008v.008h.008v-6z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
         ),
         "Visual Consistency": (
@@ -69,7 +72,7 @@ const CategoryIcon: React.FC<{ categoryName: string; className?: string }> = ({ 
         ),
         "Error Prevention & Recovery": (
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
         ),
         "Performance Perception": (
