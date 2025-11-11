@@ -45,7 +45,7 @@ const AccessDeniedPage: React.FC<AccessDeniedPageProps> = ({ onBack, onUploadMan
 
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[calc(100vh-10rem)] p-4">
+    <div className="flex-grow flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-4xl bg-white dark:bg-[#2D3748] text-center flex flex-col items-center p-8 sm:p-12 md:p-16 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
         <p className="text-sm font-bold tracking-widest text-text-secondary dark:text-gray-400">ERROR</p>
         <h1 className="my-4 text-8xl md:text-9xl font-black text-text-primary dark:text-white flex items-center justify-center gap-2 sm:gap-4">

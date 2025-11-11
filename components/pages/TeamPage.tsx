@@ -1,5 +1,9 @@
 import React from 'react';
 
+interface TeamPageProps {
+  onBack: () => void;
+}
+
 const teamMembers = [
   {
     name: 'Alex Johnson',
@@ -56,9 +60,15 @@ const SocialIcon: React.FC<{ platform: 'twitter' | 'linkedin'; href: string }> =
 };
 
 
-const TeamPage: React.FC = () => {
+const TeamPage: React.FC<TeamPageProps> = ({ onBack }) => {
     return (
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            <div className="mb-8">
+                <button onClick={onBack} className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 hover:text-primary dark:hover:text-primary-light font-medium transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    Back to Home
+                </button>
+            </div>
             <div className="mb-12 text-center">
                  <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-text-primary dark:text-white">
                     Meet the Team

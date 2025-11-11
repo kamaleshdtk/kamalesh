@@ -1,3 +1,5 @@
+
+
 import { AnalysisReport } from './types';
 
 // Simple hash function for creating a cache key from image data
@@ -61,116 +63,196 @@ export const fileToDataUrl = (file: File): Promise<{ data: string; mimeType: str
 };
 
 // Helper function for retrying with exponential backoff, configured to fail faster.
-const fetchWithRetry = async (url: string, retries = 2, delay = 1500): Promise<Response> => {
+const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 2, delay = 1500): Promise<Response> => {
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, options);
         if (response.status === 429 && retries > 0) {
             console.warn(`Screenshot service busy (429). Retrying in ${delay}ms... (${retries} retries left)`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(url, retries - 1, delay * 2);
+            return fetchWithRetry(url, options, retries - 1, delay * 2);
         }
         return response;
     } catch (error) {
         if (retries > 0) {
             console.warn(`Fetch failed. Retrying in ${delay}ms... (${retries} retries left)`);
             await new Promise(resolve => setTimeout(resolve, delay));
-            return fetchWithRetry(url, retries - 1, delay * 2);
+            return fetchWithRetry(url, options, retries - 1, delay * 2);
         }
         throw error;
     }
 };
 
-// Converts a GIF blob to a PNG data URL
-const convertGifToPng = (blob: Blob): Promise<{ data: string; mimeType: string }> => {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(blob);
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        URL.revokeObjectURL(url);
-        return reject(new Error('Could not get canvas context for GIF conversion.'));
-      }
-      ctx.drawImage(img, 0, 0);
-      const pngDataUrl = canvas.toDataURL('image/png');
-      URL.revokeObjectURL(url); // Clean up the object URL
-      resolve({ data: pngDataUrl, mimeType: 'image/png' });
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error('Failed to load GIF image for conversion.'));
-    };
-    img.src = url;
-  });
-};
+const screenshotProviders = [
+  {
+    name: 'thum.io',
+    getUrl: (url: string, fullPage: boolean) => {
+      const encodedUrl = encodeURIComponent(url);
+      return fullPage
+        ? `https://image.thum.io/get/fullpage/${encodedUrl}`
+        : `https://image.thum.io/get/width/1280/crop/800/${encodedUrl}`;
+    },
+    needsProxy: false,
+  },
+  {
+    name: 'screen.rip',
+    getUrl: (url: string, fullPage: boolean) => {
+        const encodedUrl = encodeURIComponent(url);
+        const params = new URLSearchParams({ url: encodedUrl });
+        if (fullPage) {
+            params.set('fullpage', 'true');
+        } else {
+            params.set('width', '1280');
+            params.set('height', '800');
+        }
+        return `https://screen.rip/api?${params.toString()}`;
+    },
+    needsProxy: true,
+  },
+  {
+    name: 'versatyle.dev',
+    getUrl: (url: string, fullPage: boolean) => {
+        const encodedUrl = encodeURIComponent(url);
+        const params = new URLSearchParams({ url: encodedUrl });
+        if (fullPage) {
+            params.set('full', 'true');
+        } else {
+            params.set('width', '1280');
+            params.set('height', '800');
+        }
+        return `https://api.versatyle.dev/v1/screenshot?${params.toString()}`;
+    },
+    needsProxy: true,
+  },
+  {
+    name: 'shot.screenshotapi.net',
+    getUrl: (url: string, fullPage: boolean) => {
+        const encodedUrl = encodeURIComponent(url);
+        const params = new URLSearchParams({ url: encodedUrl });
+        if (fullPage) {
+            params.set('full_page', 'true');
+        } else {
+            params.set('width', '1280');
+            params.set('height', '800');
+        }
+        return `https://shot.screenshotapi.net/screenshot?${params.toString()}`;
+    },
+    needsProxy: true,
+  },
+  {
+    name: 'render-tron.appspot.com',
+    getUrl: (url: string, fullPage: boolean) => {
+        const encodedUrl = encodeURIComponent(url);
+        const params = new URLSearchParams();
+        if (fullPage) {
+            params.set('fullPage', 'true');
+        } else {
+            params.set('width', '1280');
+            params.set('height', '800');
+        }
+        return `https://render-tron.appspot.com/screenshot/${url}?${params.toString()}`;
+    },
+    needsProxy: true,
+  },
+  {
+    name: 'screen-shot.xyz',
+    getUrl: (url: string, fullPage: boolean) => {
+      const encodedUrl = encodeURIComponent(url);
+      const params = new URLSearchParams({
+        url: encodedUrl,
+        ...(fullPage && { full_page: 'true' }),
+        ...(!fullPage && { width: '1280', height: '800' }),
+      });
+      return `https://api.screen-shot.xyz/take?${params.toString()}`;
+    },
+    needsProxy: true,
+  },
+  {
+    name: 'screenshotmachine.com',
+    getUrl: (url: string, fullPage: boolean) => {
+      const encodedUrl = encodeURIComponent(url);
+      const params = new URLSearchParams({
+        key: 'ca9249', // Public key from their site's demo tool
+        url: encodedUrl,
+        device: 'desktop',
+        cacheLimit: '0',
+        ...(fullPage && { full: '1' }),
+        ...(!fullPage && { dimension: '1280x800' }),
+      });
+      return `https://www.screenshotmachine.com/capture.php?${params.toString()}`;
+    },
+    needsProxy: true,
+  },
+  {
+    name: 'url-to-pdf-api.herokuapp.com',
+    getUrl: (url: string, fullPage: boolean) => {
+      const encodedUrl = encodeURIComponent(url);
+      const params = new URLSearchParams({
+        url: encodedUrl,
+        output: 'screenshot',
+        ...(fullPage && { fullPage: 'true' }),
+      });
+      return `https://url-to-pdf-api.herokuapp.com/api/render?${params.toString()}`;
+    },
+    needsProxy: true,
+  }
+];
 
 
 export const urlToDataUrl = async (url: string, attemptFullPage: boolean): Promise<{ data: string; mimeType: string }> => {
-  try {
-    // Validate and format URL
-    let fullUrl = url;
-    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
-        fullUrl = 'https://' + fullUrl;
-    }
-    
-    try {
-        new URL(fullUrl); // This will throw an error for invalid URLs
-    } catch (e) {
-        throw new Error("The URL format is invalid. Please check it and try again (e.g., 'example.com').");
-    }
-
-    const height = attemptFullPage ? 2048 : 720;
-    const screenshotApiUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(fullUrl)}?w=1280&h=${height}`;
-
-    const response = await fetchWithRetry(screenshotApiUrl);
-    
-    if (!response.ok) {
-      if (response.status === 429) {
-          throw new Error('The screenshot service is busy due to high traffic. Please try again in a moment.');
-      }
-      if (response.status >= 400 && response.status < 500) {
-          throw new Error(`We couldn't access this URL. It might be offline, private, or a broken link. (Error: ${response.status})`);
-      }
-      throw new Error(`The screenshot service failed due to a server error. (Status: ${response.status})`);
-    }
-    
-    const imageBlob = await response.blob();
-    const mimeType = imageBlob.type;
-    
-    // If the service returns a GIF, convert it to PNG client-side.
-    if (mimeType === 'image/gif') {
-        console.warn('Screenshot service returned a GIF, converting to PNG...');
-        return convertGifToPng(imageBlob);
-    }
-
-    // Convert the image blob to a base64 data URL
-    const reader = new FileReader();
-    return new Promise((resolve, reject) => {
-        reader.onerror = () => {
-            reader.abort();
-            reject(new Error("Failed to process the screenshot image."));
-        };
-        reader.onload = () => {
-            resolve({
-                data: reader.result as string,
-                mimeType: mimeType,
-            });
-        };
-        reader.readAsDataURL(imageBlob);
-    });
-
-  } catch (error) {
-    console.error("Error capturing website screenshot:", error);
-    if (error instanceof Error) {
-        // Re-throw specific, user-friendly errors from within the try block
-        throw error;
-    }
-    // Generic fallback for completely unexpected errors (like network failure in fetchWithRetry)
-    throw new Error("Could not capture a screenshot due to a network issue or an unknown problem.");
+  // 1. Validate and format URL
+  let fullUrl = url;
+  if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+    fullUrl = 'https://' + fullUrl;
   }
+  try {
+    new URL(fullUrl);
+  } catch (e) {
+    throw new Error("The URL format is invalid. Please check it and try again (e.g., 'example.com').");
+  }
+  
+  const errors: string[] = [];
+
+  for (const provider of screenshotProviders) {
+    try {
+        console.log(`Trying screenshot provider: ${provider.name}`);
+        let apiUrl = provider.getUrl(fullUrl, attemptFullPage);
+
+        if (provider.needsProxy) {
+            apiUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+        }
+      
+        const response = await fetchWithRetry(apiUrl);
+
+        if (!response.ok) {
+            throw new Error(`Provider ${provider.name} failed with status: ${response.status}`);
+        }
+
+        const imageBlob = await response.blob();
+        const mimeType = imageBlob.type || 'image/png';
+
+        if (imageBlob.size < 2048) { // A small blob size might indicate an error image
+            throw new Error(`Provider ${provider.name} returned an empty or invalid image.`);
+        }
+
+        // Success! Convert blob to data URL and return.
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                resolve({ data: reader.result as string, mimeType });
+            };
+            reader.onerror = () => reject(new Error("Failed to read the screenshot image data."));
+            reader.readAsDataURL(imageBlob);
+        });
+
+    } catch (error: any) {
+        console.error(`Error with provider ${provider.name}:`, error.message);
+        errors.push(`${provider.name}: ${error.message}`);
+    }
+  }
+
+  // If the loop completes without returning, all providers have failed.
+  console.error("All screenshot providers failed.", errors);
+  throw new Error("We couldn't access this URL. The site might be offline, private, or blocking all our screenshot services.");
 };
 
 export const getDisplayName = (report: AnalysisReport): string => {

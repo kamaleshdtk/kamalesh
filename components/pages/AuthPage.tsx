@@ -6,7 +6,7 @@ interface AuthPageProps {
 
 const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="flex-grow flex items-center justify-center">
       <div className="w-full max-w-md p-6 sm:p-8 space-y-8 bg-white dark:bg-gray-800 rounded-lg shadow-xl">
         <div className="text-center">
             <div className="flex justify-center items-center gap-2 mb-4">

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { AnalysisReport, ReviewType } from './types';
 import { analyzeDesign } from './services/geminiService';
@@ -11,6 +9,7 @@ import ReportPage from './components/pages/ReportPage';
 import ProfileDashboardPage from './components/pages/SettingsPage';
 import PricingPage from './components/pages/PricingPage';
 import AccessDeniedPage from './components/pages/AccessDeniedPage';
+import TeamPage from './components/pages/TeamPage';
 import Footer from './components/Footer';
 import ScreenshotFallbackModal from './components/pages/ScreenshotFallbackModal';
 import UpgradeModal from './components/pages/UpgradeModal';
@@ -44,7 +43,7 @@ export type Submission = { type: 'URL'; value: string } | { type: 'Image'; value
 
 const AppContent: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report' | 'dashboard' | 'pricing' | 'access-denied'>('auth');
+  const [currentPage, setCurrentPage] = useState<'auth' | 'home' | 'loading' | 'report' | 'dashboard' | 'pricing' | 'access-denied' | 'team'>('auth');
   const [initialDashboardTab, setInitialDashboardTab] = useState<DashboardTab>('profile');
   const [reports, setReports] = useState<AnalysisReport[]>([]);
   const [selectedReport, setSelectedReport] = useState<AnalysisReport | null>(null);
@@ -128,6 +127,7 @@ const AppContent: React.FC = () => {
     setUrlSubmissionError(null);
   }
   const navigateToPricing = () => setCurrentPage('pricing');
+  const navigateToTeam = () => setCurrentPage('team');
 
   const navigateToDashboard = (tab: DashboardTab = 'profile') => {
     setInitialDashboardTab(tab);
@@ -197,7 +197,7 @@ const AppContent: React.FC = () => {
     attemptFullPage: boolean
   ) => {
     if (userPlan.reviewsUsed >= userPlan.reviewsLimit) {
-        navigateToPricing();
+        setIsUpgradeModalOpen(true);
         return;
     }
 
@@ -254,119 +254,98 @@ const AppContent: React.FC = () => {
                 });
                 setCurrentPage('access-denied');
             } else {
-                addToast(errorMessage, 'error');
+                addToast(`Analysis failed: ${errorMessage}`, 'error');
                 setCurrentPage('home');
             }
         }
     }
-  }, [addToast, runAnalysisAndDisplayReport, userPlan]);
+  }, [runAnalysisAndDisplayReport, userPlan, addToast]);
 
-  const handleManualUploadRequest = () => {
-    if (urlSubmissionError) {
-      setScreenshotFailureInfo({
-        reason: urlSubmissionError.reason,
-        url: urlSubmissionError.url,
-        reviewType: urlSubmissionError.reviewType,
-      });
-       setUrlSubmissionError(null); // Clear the error page state
-       setCurrentPage('home'); // Go back to home to show the modal over the dashboard
-    }
-  };
-
-
-  const handleFallbackSubmit = (manualFile: File) => {
-    if (screenshotFailureInfo) {
-      if (userPlan.reviewsUsed >= userPlan.reviewsLimit) {
-        setScreenshotFailureInfo(null);
-        setIsUpgradeModalOpen(true);
-        return;
-      }
-      const { reviewType, url } = screenshotFailureInfo;
-      setCurrentPage('loading');
-      setScreenshotFailureInfo(null);
-      fileToDataUrl(manualFile).then(image => {
-        runAnalysisAndDisplayReport(image, reviewType, 'URL', url, true).then(isNew => {
-            if (isNew) setUserPlan(prev => ({...prev, reviewsUsed: prev.reviewsUsed + 1}));
-        });
-      }).catch(err => {
-        addToast('Failed to process the uploaded file.', 'error');
-        setCurrentPage('home');
-      });
-    }
-  };
-  
-  const renderContent = () => {
-    if (currentPage === 'auth' && !isLoggedIn) {
-       return <AuthPage onLogin={handleLogin} />;
-    }
-    
+  const renderPage = () => {
     switch (currentPage) {
+      case 'auth':
+        return <AuthPage onLogin={handleLogin} />;
       case 'home':
-        return <Dashboard 
-                  reports={reports}
-                  onViewReport={handleViewReport}
-                  onSubmit={handleSubmit}
-                  userPlan={userPlan}
-                />;
+        return <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} userPlan={userPlan} />;
       case 'loading':
         return <LoadingScreen />;
       case 'report':
         return selectedReport ? <ReportPage report={selectedReport} onBack={navigateToHome} /> : <Dashboard reports={reports} onViewReport={handleViewReport} onSubmit={handleSubmit} userPlan={userPlan} />;
       case 'dashboard':
         return <ProfileDashboardPage 
-                  user={user} 
-                  onUpdateUser={handleUpdateUser}
-                  notificationSettings={notificationSettings}
-                  onUpdateNotificationSettings={handleUpdateNotificationSettings}
-                  onLogout={handleLogout} 
-                  initialTab={initialDashboardTab}
-                  reports={reports}
-                  onViewReport={handleViewReport}
-                  currentUserPlan={userPlan}
-                  onNavigateToPricing={navigateToPricing}
-                />;
+            user={user} 
+            onUpdateUser={handleUpdateUser} 
+            notificationSettings={notificationSettings}
+            onUpdateNotificationSettings={handleUpdateNotificationSettings}
+            initialTab={initialDashboardTab} 
+            onLogout={handleLogout} 
+            reports={reports}
+            onViewReport={handleViewReport}
+            currentUserPlan={userPlan}
+            onNavigateToPricing={navigateToPricing}
+        />;
       case 'pricing':
         return <PricingPage onBack={navigateToHome} />;
+      case 'team':
+        return <TeamPage onBack={navigateToHome} />;
       case 'access-denied':
         return urlSubmissionError ? 
             <AccessDeniedPage 
                 onBack={navigateToHome} 
-                onUploadManually={handleManualUploadRequest}
-                reason={urlSubmissionError.reason}
-            /> :
-            <Dashboard 
-                reports={reports}
-                onViewReport={handleViewReport}
-                onSubmit={handleSubmit}
-                userPlan={userPlan}
-              />;
+                onUploadManually={() => {
+                    if (urlSubmissionError) {
+                        setScreenshotFailureInfo({
+                            url: urlSubmissionError.url,
+                            reviewType: urlSubmissionError.reviewType,
+                            reason: urlSubmissionError.reason,
+                        });
+                        setCurrentPage('home');
+                    }
+                }} 
+                reason={urlSubmissionError.reason} 
+            /> : <AccessDeniedPage onBack={navigateToHome} onUploadManually={() => {}} />;
       default:
         return <AuthPage onLogin={handleLogin} />;
     }
   };
 
   return (
-    <div className="font-sans text-text-primary dark:text-gray-300 min-h-screen flex flex-col">
-      {isLoggedIn && <Header user={user} onLogout={handleLogout} onNavigateHome={navigateToHome} onNavigateToDashboard={navigateToDashboard} onNavigateToPricing={navigateToPricing} theme={theme} setTheme={setTheme} />}
-      <main className="flex-grow pt-16">
-          {renderContent()}
-      </main>
-      {isLoggedIn && <Footer />}
-      {screenshotFailureInfo && (
-        <ScreenshotFallbackModal
-          isOpen={!!screenshotFailureInfo}
-          onClose={() => setScreenshotFailureInfo(null)}
-          onSubmit={handleFallbackSubmit}
-          url={screenshotFailureInfo.url}
-          reason={screenshotFailureInfo.reason}
+    <div className="flex flex-col min-h-screen">
+      {isLoggedIn && (
+        <Header 
+          user={user} 
+          onLogout={handleLogout} 
+          onNavigateHome={navigateToHome} 
+          onNavigateToDashboard={navigateToDashboard}
+          onNavigateToPricing={navigateToPricing}
+          theme={theme}
+          setTheme={setTheme}
         />
       )}
-       <UpgradeModal
+      <main className={`flex-grow flex flex-col ${isLoggedIn ? 'pt-[62px]' : ''}`}>
+        {renderPage()}
+      </main>
+      {isLoggedIn && currentPage !== 'report' && currentPage !== 'auth' && <Footer onNavigateToTeam={navigateToTeam} />}
+
+      <ScreenshotFallbackModal
+        isOpen={!!screenshotFailureInfo}
+        onClose={() => setScreenshotFailureInfo(null)}
+        onSubmit={async (file) => {
+            if (screenshotFailureInfo) {
+                await handleSubmit({ type: 'Image', value: file }, screenshotFailureInfo.reviewType, false, false);
+                setScreenshotFailureInfo(null);
+            }
+        }}
+        url={screenshotFailureInfo?.url || ''}
+        reason={screenshotFailureInfo?.reason}
+      />
+      
+      <UpgradeModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
         onUpgrade={() => {
-          navigateToPricing();
           setIsUpgradeModalOpen(false);
+          navigateToPricing();
         }}
         userPlan={userPlan}
       />
@@ -374,12 +353,12 @@ const AppContent: React.FC = () => {
   );
 };
 
-
-const App: React.FC = () => (
-  <ToastProvider>
-    <AppContent />
-  </ToastProvider>
-);
-
+const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
+};
 
 export default App;

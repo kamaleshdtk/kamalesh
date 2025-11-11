@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardTab, Theme } from '../../App';
 
@@ -58,7 +59,7 @@ const Header: React.FC<HeaderProps> = ({ user, onLogout, onNavigateHome, onNavig
   return (
     <header className="fixed top-0 left-0 right-0 z-20 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+        <div className="flex justify-between items-center h-[62px]">
           <div className="flex items-center gap-8">
             <Logo onClick={onNavigateHome} />
             <nav className="hidden md:flex items-center gap-4">

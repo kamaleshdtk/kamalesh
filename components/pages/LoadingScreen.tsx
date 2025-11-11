@@ -30,7 +30,7 @@ const LoadingScreen: React.FC = () => {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center px-4 overflow-hidden transition-colors duration-500">
+        <div className="flex-grow flex flex-col items-center justify-center text-center px-4 overflow-hidden transition-colors duration-500">
             <h2 className="text-2xl font-bold text-text-primary dark:text-white mb-6">
                 🔍 Analyzing Your Design...
             </h2>
