@@ -1,5 +1,6 @@
 import React from 'react';
-import { ReviewSettings } from '../../App';
+// FIX: Correct the import path for the ReviewSettings type.
+import { ReviewSettings } from '../../types';
 import SectionCard from '../shared/SectionCard';
 import ToggleSwitch from '../shared/ToggleSwitch';
 import Slider from '../shared/Slider';

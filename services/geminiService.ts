@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, ReviewType, GuidelinePreset } from '../types';
+import { AnalysisResult, ReviewType, ReviewSettings } from '../types';
 
 const issueSchema = {
     type: Type.OBJECT,
@@ -53,20 +53,25 @@ const responseSchema = {
 };
 
 
-const getReviewPrompt = (reviewType: ReviewType, guideline: GuidelinePreset): string => {
-  let guidelineInstruction = '';
-  if (guideline && guideline !== 'General') {
-    guidelineInstruction = `
-      **Additional Guideline Constraint:**
-      In addition to the checklists, you MUST perform your analysis through the specific lens of the **${guideline}** design system.
-      - For each issue you identify, explicitly mention how it violates a principle from ${guideline}.
-      - If an element conforms well to ${guideline}, you can mention it, but focus on finding violations.
-      - Your recommendations should suggest solutions that align with ${guideline}'s components and patterns (e.g., 'Use a Material Design Floating Action Button').
-    `;
-  }
+const getReviewPrompt = (reviewType: ReviewType, settings: ReviewSettings): string => {
+  const persona = {
+    'Friendly': "You are a friendly and encouraging AI design assistant. Your goal is to provide helpful feedback for hobbyists and students. Your tone should be positive and constructive.",
+    'Professional': "You are an expert AI design consultant. Your analysis must be objective, thorough, and professional. Your tone should be formal and data-driven, referencing established design principles.",
+    'Direct': "You are a senior design lead providing a direct critique. Your feedback should be concise, to-the-point, and blunt. Focus on the most critical issues with actionable, no-fluff recommendations.",
+  };
+
+  const strictness = {
+    'Soft': "Your analysis should be high-level. Focus only on major, obvious violations of design principles. Be lenient with your scoring.",
+    'Balanced': "Your analysis should be comprehensive, covering both major and minor issues. Your scoring should be fair and balanced.",
+    'Strict': "Your analysis must be meticulous and detail-oriented. Scrutinize every element for even minor inconsistencies in spacing, alignment, and adherence to principles. Deduct points liberally for any deviation from best practices.",
+  };
 
   const basePrompt = `
-    You are a free, hobby-level AI assistant. Your goal is to provide a helpful and encouraging design audit for hobbyists and students, using state-of-the-art, freely available models. Your tone should be friendly and constructive. Before you begin, you must perform four critical safety checks in order.
+    You are an AI assistant tasked with a design audit. Your persona and the strictness of your analysis are defined below. Before you begin, you must perform four critical safety checks in order.
+
+    **Persona & Tone:** ${persona[settings.tone]}
+    **UI Analysis Strictness:** ${strictness[settings.uiStrictness]}
+    **UX Analysis Strictness:** ${strictness[settings.uxStrictness]}
 
     **Step 1: CAPTCHA Verification**
 
@@ -161,16 +166,12 @@ const getReviewPrompt = (reviewType: ReviewType, guideline: GuidelinePreset): st
     **Step 5: Full Design Analysis**
     
     If, and only if, you have determined the image is NOT a CAPTCHA, NOT an Access Denied page, NOT an Error Page, and IS a UI Screenshot, proceed with the following instructions.
-    Your task is to conduct a friendly, professional audit of the provided screenshot. Provide helpful tips and nice suggestions. Be constructive and objective, identifying potential improvements based on established design principles from the checklists below.
-    Your tone should be friendly and encouraging, suitable for a hobbyist.
-
-    ${guidelineInstruction}
-
+    
     **CRITICAL INSTRUCTION: You MUST be deterministic. For the exact same input image, you MUST produce the exact same JSON output, including scores and descriptions. Do not introduce any randomness.**
 
     **Report Structure and Scoring Rules:**
     1.  **Categorical Analysis:** Analyze the design against EACH category in the provided checklist (e.g., "Layout & Structure", "Color & Contrast").
-    2.  **Category Score:** For each category, assign a score from 0 to 100. Start at 100 and deduct points for any issues found within that category. The more severe the issue, the more points you deduct.
+    2.  **Category Score:** For each category, assign a score from 0 to 100. Start at 100 and deduct points for any issues found within that category. The more severe the issue, the more points you deduct, according to your strictness setting.
     3.  **Issue Identification:** Within each category, list all specific issues you find. For each issue, you MUST provide:
         - A clear \`issueTitle\`.
         - A detailed \`issueDescription\`.
@@ -178,7 +179,7 @@ const getReviewPrompt = (reviewType: ReviewType, guideline: GuidelinePreset): st
         - A \`severity\` level ('Critical', 'Major', 'Minor').
         - If applicable, also provide the \`relevantLaw\` (e.g., "Hick's Law").
     4.  **Overall Score:** Calculate the final overall \`uiScore\` and \`uxScore\` by taking the mathematical AVERAGE of all their respective category scores. For example, if there are 8 UI categories, the \`uiScore\` is the sum of the 8 category scores divided by 8. Round the final score to the nearest whole number.
-    5.  **Summary:** Start the entire report with a brief, two-sentence \`overallSummary\` of the key findings.
+    5.  **Summary:** Start the entire report with a brief, two-sentence \`overallSummary\` of the key findings, written in your assigned tone.
     6.  **Empty Categories:** If a category has no issues, give it a score of 100 and an empty \`issues\` array.
     7.  **Focused Review:** If you are asked to focus on only UI or only UX, the other category's analysis array should be empty, and its overall score should be 100.
   `;
@@ -287,7 +288,7 @@ const getReviewPrompt = (reviewType: ReviewType, guideline: GuidelinePreset): st
 export const analyzeDesign = async (
   image: { data: string; mimeType: string },
   reviewType: ReviewType,
-  guideline: GuidelinePreset
+  reviewSettings: ReviewSettings
 ): Promise<AnalysisResult> => {
   // Safely access the API key and initialize the client inside the function
   // to prevent an app-level crash if `process` is not defined on load.
@@ -300,7 +301,7 @@ export const analyzeDesign = async (
 
   const ai = new GoogleGenAI({ apiKey: API_KEY });
   
-  const prompt = getReviewPrompt(reviewType, guideline);
+  const prompt = getReviewPrompt(reviewType, reviewSettings);
 
   const imagePart = {
     inlineData: {

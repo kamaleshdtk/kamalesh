@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useCallback, ChangeEvent, useEffect, useMemo } from 'react';
 import { AnalysisReport, ReviewType, GuidelinePreset } from '../../types';
 import ReportCard from '../shared/ReportCard';
@@ -274,6 +272,11 @@ const AnalysisForm: React.FC<{
                 </div>
             </div>
             <div className="mt-6 flex flex-col sm:flex-row items-center justify-end gap-4 px-2">
+                {!!url && (
+                    <p className="text-xs text-text-secondary dark:text-gray-500 mr-auto">
+                      <strong>Note:</strong> URL analysis now automatically captures the full page.
+                    </p>
+                )}
                 <div className="flex items-center gap-6 flex-shrink-0">
                     <div className="relative group flex items-center gap-1.5">
                         <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 cursor-help">

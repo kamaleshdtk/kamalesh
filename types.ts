@@ -1,12 +1,16 @@
-
-
-
 export enum ReviewType {
   UI = 'UI Review',
   UX = 'UX Review',
 }
 
 export type GuidelinePreset = 'General' | 'Material Design' | 'Apple HIG' | 'Fluent Design';
+
+export interface ReviewSettings {
+  uiStrictness: 'Soft' | 'Balanced' | 'Strict';
+  uxStrictness: 'Soft' | 'Balanced' | 'Strict';
+  tone: 'Friendly' | 'Professional' | 'Direct';
+  reportFormat: boolean;
+}
 
 export interface AnalysisIssue {
   issueTitle: string;
@@ -25,6 +29,7 @@ export interface CategoryAnalysis {
 export interface AnalysisResult {
   isCaptcha: boolean;
   isAccessDenied: boolean;
+
   isErrorPage: boolean;
   isNotUiScreenshot: boolean;
   isFullPage: boolean;
@@ -46,5 +51,6 @@ export interface AnalysisReport {
   created_at: string;
   screenshot_url: string; // base64 data URL
   review_type: ReviewType;
+  // FIX: Add optional `guideline_preset` property to match its usage in ReportPage.tsx.
   guideline_preset?: GuidelinePreset;
 }

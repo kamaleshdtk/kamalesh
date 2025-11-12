@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { AnalysisReport, ReviewType, GuidelinePreset } from './types';
+import { AnalysisReport, ReviewType, GuidelinePreset, ReviewSettings } from './types';
 import { analyzeDesign } from './services/geminiService';
 import Header from './components/Header';
 import AuthPage from './components/pages/AuthPage';
@@ -29,15 +29,7 @@ export interface NotificationSettings {
   productUpdates: boolean;
 }
 
-// FIX: Added missing ReviewSettings interface to resolve import error in ReviewSettingsPanel.tsx.
-export interface ReviewSettings {
-  uiStrictness: 'Soft' | 'Balanced' | 'Strict';
-  uxStrictness: 'Soft' | 'Balanced' | 'Strict';
-  tone: 'Friendly' | 'Professional' | 'Direct';
-  reportFormat: boolean;
-}
-
-export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'notifications' | 'security' | 'help';
+export type DashboardTab = 'profile' | 'billing' | 'reviews' | 'notifications' | 'security' | 'help' | 'review-settings';
 export type Theme = 'light' | 'dark' | 'system';
 export type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File };
 
@@ -72,6 +64,20 @@ const AppContent: React.FC = () => {
     emailWeekly: false,
     productUpdates: true,
   });
+
+  const [reviewSettings, setReviewSettings] = useState<ReviewSettings>(() => {
+    const savedSettings = localStorage.getItem('reviewSettings');
+    return savedSettings ? JSON.parse(savedSettings) : {
+      uiStrictness: 'Balanced',
+      uxStrictness: 'Balanced',
+      tone: 'Friendly',
+      reportFormat: true, // true for detailed
+    };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('reviewSettings', JSON.stringify(reviewSettings));
+  }, [reviewSettings]);
 
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
@@ -111,6 +117,20 @@ const AppContent: React.FC = () => {
     setNotificationSettings(prev => ({ ...prev, ...updates }));
   };
 
+  const handleUpdateReviewSettings = (updates: Partial<ReviewSettings>) => {
+    setReviewSettings(prev => ({ ...prev, ...updates }));
+  };
+  
+  const handleClearCache = () => {
+    Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('report-cache-')) {
+            localStorage.removeItem(key);
+        }
+    });
+    setReports([]);
+    addToast('Analysis cache cleared!', 'success');
+  };
+
   const handleLogin = () => {
     setIsLoggedIn(true);
     setCurrentPage('home');
@@ -146,11 +166,12 @@ const AppContent: React.FC = () => {
     inputType: 'URL' | 'Image',
     inputValue: string,
     ignoreCache: boolean,
-    guideline: GuidelinePreset
+    currentReviewSettings: ReviewSettings
   ): Promise<boolean> => {
     const resizedImage = await resizeImage(image.data, image.mimeType);
 
-    const cacheKey = `report-cache-${reviewType}-${guideline}-${simpleHash(resizedImage.data)}`;
+    const settingsHash = simpleHash(JSON.stringify(currentReviewSettings));
+    const cacheKey = `report-cache-${reviewType}-${settingsHash}-${simpleHash(resizedImage.data)}`;
     
     if (!ignoreCache) {
         const cachedReportJSON = localStorage.getItem(cacheKey);
@@ -166,7 +187,7 @@ const AppContent: React.FC = () => {
         }
     }
 
-    const result = await analyzeDesign(resizedImage, reviewType, guideline);
+    const result = await analyzeDesign(resizedImage, reviewType, currentReviewSettings);
 
     const newReport: AnalysisReport = {
       id: new Date().toISOString(),
@@ -179,7 +200,6 @@ const AppContent: React.FC = () => {
       created_at: new Date().toISOString(),
       screenshot_url: resizedImage.data,
       review_type: reviewType,
-      guideline_preset: guideline,
     };
 
     localStorage.setItem(cacheKey, JSON.stringify(newReport));
@@ -228,7 +248,7 @@ const AppContent: React.FC = () => {
             inputType,
             inputValue,
             ignoreCache,
-            'General',
+            reviewSettings
         );
 
         if (isNewAnalysis) {
@@ -262,7 +282,7 @@ const AppContent: React.FC = () => {
             }
         }
     }
-  }, [runAnalysisAndDisplayReport, userPlan, addToast]);
+  }, [runAnalysisAndDisplayReport, userPlan, addToast, reviewSettings]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -280,6 +300,9 @@ const AppContent: React.FC = () => {
             onUpdateUser={handleUpdateUser} 
             notificationSettings={notificationSettings}
             onUpdateNotificationSettings={handleUpdateNotificationSettings}
+            reviewSettings={reviewSettings}
+            onUpdateReviewSettings={handleUpdateReviewSettings}
+            onClearCache={handleClearCache}
             initialTab={initialDashboardTab} 
             onLogout={handleLogout} 
             reports={reports}
