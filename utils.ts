@@ -1,5 +1,3 @@
-
-
 import { AnalysisReport } from './types';
 
 // Simple hash function for creating a cache key from image data
@@ -84,6 +82,26 @@ const fetchWithRetry = async (url: string, options: RequestInit = {}, retries = 
 
 const screenshotProviders = [
   {
+    name: 'microlink.io',
+    getUrl: (url: string, fullPage: boolean) => {
+      const params = new URLSearchParams({
+        url: url,
+        screenshot: 'true',
+        'meta': 'false',
+        'embed': 'screenshot.url',
+      });
+      if (fullPage) {
+        params.set('fullPage', 'true');
+      } else {
+        // Microlink uses viewport to simulate visible area, which is what we want.
+        params.set('viewport.width', '1280');
+        params.set('viewport.height', '800');
+      }
+      return `https://api.microlink.io/?${params.toString()}`;
+    },
+    needsProxy: false,
+  },
+  {
     name: 'thum.io',
     getUrl: (url: string, fullPage: boolean) => {
       const encodedUrl = encodeURIComponent(url);
@@ -91,7 +109,7 @@ const screenshotProviders = [
         ? `https://image.thum.io/get/fullpage/${encodedUrl}`
         : `https://image.thum.io/get/width/1280/crop/800/${encodedUrl}`;
     },
-    needsProxy: false,
+    needsProxy: true,
   },
   {
     name: 'screen.rip',
@@ -218,7 +236,8 @@ export const urlToDataUrl = async (url: string, attemptFullPage: boolean): Promi
         let apiUrl = provider.getUrl(fullUrl, attemptFullPage);
 
         if (provider.needsProxy) {
-            apiUrl = `https://corsproxy.io/?${encodeURIComponent(apiUrl)}`;
+            // Use a different proxy for the fallback services to maximize chances
+            apiUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(apiUrl)}`;
         }
       
         const response = await fetchWithRetry(apiUrl);
@@ -251,8 +270,8 @@ export const urlToDataUrl = async (url: string, attemptFullPage: boolean): Promi
   }
 
   // If the loop completes without returning, all providers have failed.
-  console.error("All screenshot providers failed.", errors);
-  throw new Error("We couldn't access this URL. The site might be offline, private, or blocking all our screenshot services.");
+  console.error("All screenshot providers failed.", errors.join(', '));
+  throw new Error(`We couldn't access this URL. The site might be offline, private, or blocking all our screenshot services.`);
 };
 
 export const getDisplayName = (report: AnalysisReport): string => {
