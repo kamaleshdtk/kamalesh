@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, ReviewType } from '../types';
+import { AnalysisResult, ReviewType, GuidelinePreset } from '../types';
 
 const issueSchema = {
     type: Type.OBJECT,
@@ -53,9 +53,20 @@ const responseSchema = {
 };
 
 
-const getReviewPrompt = (reviewType: ReviewType): string => {
+const getReviewPrompt = (reviewType: ReviewType, guideline: GuidelinePreset): string => {
+  let guidelineInstruction = '';
+  if (guideline && guideline !== 'General') {
+    guidelineInstruction = `
+      **Additional Guideline Constraint:**
+      In addition to the checklists, you MUST perform your analysis through the specific lens of the **${guideline}** design system.
+      - For each issue you identify, explicitly mention how it violates a principle from ${guideline}.
+      - If an element conforms well to ${guideline}, you can mention it, but focus on finding violations.
+      - Your recommendations should suggest solutions that align with ${guideline}'s components and patterns (e.g., 'Use a Material Design Floating Action Button').
+    `;
+  }
+
   const basePrompt = `
-    You are Design Audit, an expert UI/UX analysis AI. Your primary goal is to provide a detailed design audit. Before you begin, you must perform four critical safety checks in order.
+    You are a free, hobby-level AI assistant. Your goal is to provide a helpful and encouraging design audit for hobbyists and students, using state-of-the-art, freely available models. Your tone should be friendly and constructive. Before you begin, you must perform four critical safety checks in order.
 
     **Step 1: CAPTCHA Verification**
 
@@ -150,8 +161,10 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
     **Step 5: Full Design Analysis**
     
     If, and only if, you have determined the image is NOT a CAPTCHA, NOT an Access Denied page, NOT an Error Page, and IS a UI Screenshot, proceed with the following instructions.
-    Your task is to conduct a strict, professional audit of the provided screenshot. Do not provide general tips or nice suggestions. Be critical and objective, identifying concrete violations of established design principles based on the checklists below.
-    Your tone must be that of an expert auditor: direct, precise, and authoritative.
+    Your task is to conduct a friendly, professional audit of the provided screenshot. Provide helpful tips and nice suggestions. Be constructive and objective, identifying potential improvements based on established design principles from the checklists below.
+    Your tone should be friendly and encouraging, suitable for a hobbyist.
+
+    ${guidelineInstruction}
 
     **CRITICAL INSTRUCTION: You MUST be deterministic. For the exact same input image, you MUST produce the exact same JSON output, including scores and descriptions. Do not introduce any randomness.**
 
@@ -273,7 +286,8 @@ const getReviewPrompt = (reviewType: ReviewType): string => {
 
 export const analyzeDesign = async (
   image: { data: string; mimeType: string },
-  reviewType: ReviewType
+  reviewType: ReviewType,
+  guideline: GuidelinePreset
 ): Promise<AnalysisResult> => {
   // Safely access the API key and initialize the client inside the function
   // to prevent an app-level crash if `process` is not defined on load.
@@ -286,7 +300,7 @@ export const analyzeDesign = async (
 
   const ai = new GoogleGenAI({ apiKey: API_KEY });
   
-  const prompt = getReviewPrompt(reviewType);
+  const prompt = getReviewPrompt(reviewType, guideline);
 
   const imagePart = {
     inlineData: {

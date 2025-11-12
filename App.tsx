@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { AnalysisReport, ReviewType } from './types';
+import { AnalysisReport, ReviewType, GuidelinePreset } from './types';
 import { analyzeDesign } from './services/geminiService';
 import Header from './components/Header';
 import AuthPage from './components/pages/AuthPage';
@@ -145,11 +145,12 @@ const AppContent: React.FC = () => {
     reviewType: ReviewType,
     inputType: 'URL' | 'Image',
     inputValue: string,
-    ignoreCache: boolean
+    ignoreCache: boolean,
+    guideline: GuidelinePreset
   ): Promise<boolean> => {
     const resizedImage = await resizeImage(image.data, image.mimeType);
 
-    const cacheKey = `report-cache-${reviewType}-${simpleHash(resizedImage.data)}`;
+    const cacheKey = `report-cache-${reviewType}-${guideline}-${simpleHash(resizedImage.data)}`;
     
     if (!ignoreCache) {
         const cachedReportJSON = localStorage.getItem(cacheKey);
@@ -165,7 +166,7 @@ const AppContent: React.FC = () => {
         }
     }
 
-    const result = await analyzeDesign(resizedImage, reviewType);
+    const result = await analyzeDesign(resizedImage, reviewType, guideline);
 
     const newReport: AnalysisReport = {
       id: new Date().toISOString(),
@@ -178,6 +179,7 @@ const AppContent: React.FC = () => {
       created_at: new Date().toISOString(),
       screenshot_url: resizedImage.data,
       review_type: reviewType,
+      guideline_preset: guideline,
     };
 
     localStorage.setItem(cacheKey, JSON.stringify(newReport));
@@ -193,8 +195,7 @@ const AppContent: React.FC = () => {
   const handleSubmit = useCallback(async (
     submission: Submission,
     reviewType: ReviewType,
-    ignoreCache: boolean,
-    attemptFullPage: boolean
+    ignoreCache: boolean
   ) => {
     if (userPlan.reviewsUsed >= userPlan.reviewsLimit) {
         setIsUpgradeModalOpen(true);
@@ -209,9 +210,10 @@ const AppContent: React.FC = () => {
         let image: { data: string, mimeType: string, name?: string };
         let inputType: 'URL' | 'Image';
         let inputValue: string;
+        const isUrlSubmission = submission.type === 'URL';
 
-        if (submission.type === 'URL') {
-            image = await urlToDataUrl(submission.value, attemptFullPage);
+        if (isUrlSubmission) {
+            image = await urlToDataUrl(submission.value, true); // Always true for URL submissions now
             inputType = 'URL';
             inputValue = submission.value;
         } else {
@@ -226,6 +228,7 @@ const AppContent: React.FC = () => {
             inputType,
             inputValue,
             ignoreCache,
+            'General',
         );
 
         if (isNewAnalysis) {
@@ -332,7 +335,7 @@ const AppContent: React.FC = () => {
         onClose={() => setScreenshotFailureInfo(null)}
         onSubmit={async (file) => {
             if (screenshotFailureInfo) {
-                await handleSubmit({ type: 'Image', value: file }, screenshotFailureInfo.reviewType, false, false);
+                await handleSubmit({ type: 'Image', value: file }, screenshotFailureInfo.reviewType, false);
                 setScreenshotFailureInfo(null);
             }
         }}

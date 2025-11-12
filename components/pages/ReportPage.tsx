@@ -17,18 +17,33 @@ const getScoreInfo = (score: number, reviewType: ReviewType) => {
     if (score >= 85) {
         return {
             title: 'Excellent',
-            description: `Based on our analysis, your ${subject} is performing exceptionally well, adhering to best practices.`
+            description: `Based on our analysis, your ${subject} is performing exceptionally well, adhering to best practices.`,
+            icon: (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            )
         };
     }
     if (score >= 60) {
         return {
             title: 'Good',
-            description: `Based on our analysis, your ${subject} is performing well, with some minor areas for improvement.`
+            description: `Based on our analysis, your ${subject} is performing well, with some minor areas for improvement.`,
+            icon: (
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M14 10h4.764a2.25 2.25 0 011.789 3.623l-3.236 4.53L15 21l-3.375-4.5-3.75-5.25L6 10l3.25-4.5 3.75-5.25L15 3l-3.375 4.5L14 10z" />
+                 </svg>
+            )
         };
     }
     return {
         title: 'Needs Improvement',
-        description: `Based on our analysis, your ${subject} has several key areas that require improvement.`
+        description: `Based on our analysis, your ${subject} has several key areas that require improvement.`,
+        icon: (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+            </svg>
+        )
     };
 }
 
@@ -157,7 +172,7 @@ const AccordionItem: React.FC<{ category: CategoryAnalysis, isOpen: boolean, onT
 
 
 const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({ report, onBack }) => {
-  const { result_json: results, screenshot_url, review_type } = report;
+  const { result_json: results, screenshot_url, review_type, guideline_preset } = report;
   const { addToast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
@@ -390,11 +405,18 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-bold text-text-primary dark:text-white">Design Preview</h2>
-                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
-                      {results.isFullPage ? 'Full Page' : 'Partial Screenshot'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {guideline_preset && guideline_preset !== 'General' && (
+                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                           {guideline_preset}
+                        </span>
+                    )}
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light">
+                        {results.isFullPage ? 'Full Page' : 'Partial Screenshot'}
+                    </span>
+                  </div>
                 </div>
-                 <div className="bg-black rounded-lg p-2">
+                 <div className="bg-black rounded-lg p-2 max-h-[250px] overflow-y-auto scrollbar-hide">
                     <img id="design-preview-img" src={screenshot_url} alt="Analyzed Screenshot" className="rounded-md w-full" />
                  </div>
             </div>
@@ -408,6 +430,9 @@ const ReportPage: React.FC<{ report: AnalysisReport; onBack: () => void; }> = ({
                  <h2 className="text-xl font-bold text-text-primary dark:text-white">Overall {isUiReview ? 'UI' : 'UX'} Score</h2>
                  <div className="my-6">
                     <ProgressRing score={overallScore} />
+                 </div>
+                 <div className={`mb-2 ${getScoreColor(overallScore)}`}>
+                    {scoreInfo.icon}
                  </div>
                  <p className={`text-xl font-bold ${getScoreColor(overallScore)}`}>
                     {scoreInfo.title}

@@ -1,7 +1,7 @@
 
 
 import React, { useState, useRef, useCallback, ChangeEvent, useEffect, useMemo } from 'react';
-import { AnalysisReport, ReviewType } from '../../types';
+import { AnalysisReport, ReviewType, GuidelinePreset } from '../../types';
 import ReportCard from '../shared/ReportCard';
 import { useToast } from '../../contexts/ToastContext';
 import { getDisplayName, fileToDataUrl, dataUrlToFile } from '../../utils';
@@ -11,7 +11,7 @@ type Submission = { type: 'URL'; value: string } | { type: 'Image'; value: File 
 interface DashboardProps {
   reports: AnalysisReport[];
   onViewReport: (report: AnalysisReport) => void;
-  onSubmit: (submission: Submission, reviewType: ReviewType, ignoreCache: boolean, attemptFullPage: boolean) => void;
+  onSubmit: (submission: Submission, reviewType: ReviewType, ignoreCache: boolean) => void;
   userPlan: { name: string; reviewsUsed: number; reviewsLimit: number; };
 }
 
@@ -175,10 +175,9 @@ const AnalysisForm: React.FC<{
     }
     
     if (imageFile) {
-        onSubmit({ type: 'Image', value: imageFile }, analysisType, ignoreCache, false);
+        onSubmit({ type: 'Image', value: imageFile }, analysisType, ignoreCache);
     } else if (url) {
-        // Always attempt full page for URL submissions
-        onSubmit({ type: 'URL', value: url }, analysisType, ignoreCache, true);
+        onSubmit({ type: 'URL', value: url }, analysisType, ignoreCache);
     }
     localStorage.removeItem('designAudit-draft');
   };
@@ -274,15 +273,7 @@ const AnalysisForm: React.FC<{
                     </div>
                 </div>
             </div>
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 px-2">
-                 <div>
-                    {/* Show note only when a URL is entered and no image is present */}
-                    {url && !imageFile && (
-                        <p className="text-sm text-text-secondary dark:text-gray-400 animate-fade-in">
-                            <span className="font-semibold text-primary">Note:</span> URL analysis will capture the full page by default.
-                        </p>
-                    )}
-                </div>
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-end gap-4 px-2">
                 <div className="flex items-center gap-6 flex-shrink-0">
                     <div className="relative group flex items-center gap-1.5">
                         <label className="flex items-center gap-2 text-sm text-text-secondary dark:text-gray-400 cursor-help">

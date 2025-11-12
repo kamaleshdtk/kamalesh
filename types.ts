@@ -1,9 +1,12 @@
 
 
+
 export enum ReviewType {
   UI = 'UI Review',
   UX = 'UX Review',
 }
+
+export type GuidelinePreset = 'General' | 'Material Design' | 'Apple HIG' | 'Fluent Design';
 
 export interface AnalysisIssue {
   issueTitle: string;
@@ -43,4 +46,5 @@ export interface AnalysisReport {
   created_at: string;
   screenshot_url: string; // base64 data URL
   review_type: ReviewType;
+  guideline_preset?: GuidelinePreset;
 }
